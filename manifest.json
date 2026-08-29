@@ -1,0 +1,9 @@
+{
+    "name": "Painel Vila",
+    "short_name": "Painel Vila",
+    "description": "Painel de gestao Vila Fit x Vila Gourmet",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#14171a",
+    "theme_color": "#14171a"
+}
