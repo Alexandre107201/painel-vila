@@ -700,7 +700,8 @@ themeBtn.addEventListener('click', ()=>{
   }
 });
 
-renderAll();
+if (window.iniciarDadosVivos) { window.iniciarDadosVivos(); } else { renderAll(); }
 </script>
+  <script src="dados-live.js"></script>
 </body>
 </html>
