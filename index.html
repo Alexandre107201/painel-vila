@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel Vila - Vila Fit x Vila Gourmet</title>
+<title>Painel Vila — Vila Fit × Vila Gourmet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -58,7 +58,6 @@
     flex-wrap:wrap;gap:16px;
     padding-bottom:20px;border-bottom:1px solid var(--border-soft);margin-bottom:24px;
   }
-  @media (min-width:901px){ .topbar{padding-right:314px;} }
   .brand{display:flex;align-items:center;gap:12px;}
   .brand-mark{
     width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--fit),var(--gourmet));
@@ -113,7 +112,6 @@
     position:relative;background:var(--surface);border:1px solid var(--border);border-radius:10px;
     padding:16px 16px 14px;overflow:visible;
   }
-  @media (min-width:901px){ .kpi-row{padding-right:314px;} }
   .ticket::before,.ticket::after{
     content:"";position:absolute;top:46px;width:16px;height:16px;background:var(--bg);border-radius:50%;
   }
@@ -237,9 +235,13 @@
   }
 </style>
 <link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
 <meta name="theme-color" content="#14171a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Painel Vila">
 </head>
 <body>
@@ -250,7 +252,7 @@
       <div class="brand-mark">V</div>
       <div>
         <div class="brand-name">PAINEL VILA</div>
-        <div class="brand-sub">Vila Fit - Vila Gourmet - Praia Clube, Uberlândia</div>
+        <div class="brand-sub">Vila Fit · Vila Gourmet — Praia Clube, Uberlândia</div>
       </div>
     </div>
     <div class="controls">
@@ -261,17 +263,17 @@
       </div>
       <div class="period-toggle">
         <button class="period-btn active" data-period="hoje">Hoje</button>
-        <button class="period-btn" data-period="semana">Semana (seg-dom)</button>
+        <button class="period-btn" data-period="semana">Semana (seg–dom)</button>
         <button class="period-btn" data-period="mes">Mês</button>
       </div>
-      <button class="theme-toggle" id="themeToggle" title="Alternar fundo claro/escuro" aria-label="Alternar fundo claro/escuro">[dia]</button>
+      <button class="theme-toggle" id="themeToggle" title="Alternar fundo claro/escuro" aria-label="Alternar fundo claro/escuro">☀</button>
     </div>
-    <div class="timestamp" id="dataSourceNote">24 AGO 2026 - DADOS REAIS (TEKNISA, 25/07-24/08) - VILA FIT + VILA GOURMET</div>
+    <div class="timestamp" id="dataSourceNote">24 AGO 2026 · DADOS REAIS (TEKNISA, 25/07–24/08) · VILA FIT + VILA GOURMET</div>
   </div>
 
   <div class="runrate-card" id="runrateCard">
     <div class="runrate-label">Projeção de fechamento</div>
-    <div class="runrate-value num" id="runrateValue">-</div>
+    <div class="runrate-value num" id="runrateValue">—</div>
     <div class="runrate-basis" id="runrateBasis"></div>
     <div class="runrate-compare" id="runrateCompare"></div>
   </div>
@@ -312,19 +314,19 @@
   <div class="panel matrix-panel">
     <div class="panel-head">
       <h2>Matriz de Engenharia de Cardápio</h2>
-      <span class="panel-note">Popularidade real (TEKNISA) x margem estimada - sem custo por produto ainda, classificação provisória</span>
+      <span class="panel-note">Popularidade real (TEKNISA) × margem estimada — sem custo por produto ainda, classificação provisória</span>
     </div>
     <div class="matrix-wrap">
-      <div class="matrix-axis-y">MARGEM (alta)</div>
+      <div class="matrix-axis-y">MARGEM ↑</div>
       <div class="matrix-body">
         <div class="matrix-grid" id="matrixGrid"></div>
-        <div class="matrix-axis-x">POPULARIDADE (eixo)</div>
+        <div class="matrix-axis-x">POPULARIDADE →</div>
       </div>
     </div>
   </div>
 
   <div class="panel compare-panel">
-    <div class="panel-head"><h2>Vila Fit x Vila Gourmet - hoje</h2></div>
+    <div class="panel-head"><h2>Vila Fit × Vila Gourmet — hoje</h2></div>
     <div class="compare-legend">
       <div class="legend-chip"><span class="legend-dot" style="background:var(--fit)"></span>Vila Fit</div>
       <div class="legend-chip"><span class="legend-dot" style="background:var(--gourmet)"></span>Vila Gourmet</div>
@@ -337,13 +339,13 @@
     <ul class="actions-list" id="actionsList"></ul>
   </div>
 
-  <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Vila Fit = caixas 001-003/010/009/004; Vila Gourmet = caixas 005-008 (mesma unidade desde a fusão de abril/2026) - corrigido para não contar as vendas do Gourmet dentro do Fit. Padrão de semana: segunda a domingo (mostrando a última completa, 17-23/08; a semana corrente só começou hoje). Na Semana, "vs período anterior" compara com 10-16/08; "vs mesma semana do mês anterior" compara com 20-26/07/2026; "vs mesma semana do ano anterior" compara com 18-24/08/2025 (Gourmet operava como unidade própria "0001" nessa época). CMV e Projeção ficam em branco pois este relatório não traz custo por produto.</div>
+  <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Vila Fit = caixas 001-003/010/009/004; Vila Gourmet = caixas 005-008 (mesma unidade desde a fusão de abril/2026) — corrigido para não contar as vendas do Gourmet dentro do Fit. Padrão de semana: segunda a domingo (mostrando a última completa, 17–23/08; a semana corrente só começou hoje). Na Semana, "vs período anterior" compara com 10–16/08; "vs mesma semana do mês anterior" compara com 20–26/07/2026; "vs mesma semana do ano anterior" compara com 18–24/08/2025 (Gourmet operava como unidade própria "0001" nessa época). CMV e Projeção ficam em branco pois este relatório não traz custo por produto.</div>
 </div>
 
 <script>
-// Projeção de fechamento do mês (regra de três: faturamento acumulado / dias
-// decorridos x dias do mês). Baseado no mês calendário corrente (agosto/2026).
-// dataCorte reflete até onde o dado real chega - atualiza sozinho quando a
+// Projeção de fechamento do mês (regra de três: faturamento acumulado ÷ dias
+// decorridos × dias do mês). Baseado no mês calendário corrente (agosto/2026).
+// dataCorte reflete até onde o dado real chega — atualiza sozinho quando a
 // extração automática estiver rodando dia a dia.
 const FECHAMENTO = {
   fit:     { fatAcumulado:345108.38, diasDecorridos:24, diasMes:31, dataCorte:'24/08/2026',
@@ -366,7 +368,7 @@ const DATA = {
            ["Salada de Fruta",1],["Suco Maguary Uva",1],["Sprite Lemon Fresh",1],
            ["Yo Pro 15g Cappuccino 250ml",1],["Trident Canela",1],["Açaí Kg",1],["Self Almoço",0]] },
     semana: { fat:107852.41, deltaFat:-7.8, itT:1.60, itMeta:1.80, tk:19.86, cmv:null, cmvMeta:35, proj:null, projMeta:195000,
-      periodo:'17/08 - 23/08/2026 (seg-dom)', deltaMesAnt:-59.8, deltaAnoAnt:50.5,
+      periodo:'17/08 – 23/08/2026 (seg–dom)', deltaMesAnt:-59.8, deltaAnoAnt:50.5,
       horas:[0,4,251,304,334,341,356,408,323,389,511,578,700,518,313,100],
       top:[["Espetinho Frango Empanado",411],["Agua Crystal Sem Gas",258],["Balas Diversas",241],["Pastel de Queijo",200],
            ["Cafe Coado S/ Acucar",172],["Agua Crystal Com Gas",151],["Coca Zero 310ml",127],["Torta de Frango",117],
@@ -375,7 +377,7 @@ const DATA = {
            ["Talento Doce de Leite 85g",1],["Tap/Crep Cremosa",1],["Tap/Crep Frango Mucarela Banana Canela",1],
            ["1/2 Panini Frango",1],["Top Way Protein Alfajor Salted Caramel",1],["Yopro Morango 15g 250ml",1],["Iogurte Kg",1]] },
     mes:    { fat:531037.79, deltaFat:null, itT:1.75, itMeta:1.80, tk:22.12, cmv:null, cmvMeta:35, proj:null, projMeta:245000,
-      periodo:'25/07 - 24/08/2026',
+      periodo:'25/07 – 24/08/2026',
       horas:[0,140,1045,1306,1414,1626,1754,1844,1596,1936,2455,2663,2712,1858,1220,440],
       top:[["Espetinho Frango Empanado",1697],["Agua Crystal Sem Gas",1398],["Cafe Coado S/ Acucar",992],["Balas Diversas",968],
            ["Pastel de Queijo",962],["Agua Crystal Com Gas",879],["Self Almoço",775],["Coca Zero 310ml",687],
@@ -396,7 +398,7 @@ const DATA = {
       top:[["Coca-Cola Zero",1],["Filé de Frango",1],["Segunda",1],["Suco de Laranja 300ml",1]],
       bottom:[["Coca-Cola Zero",1],["Filé de Frango",1],["Segunda",1],["Suco de Laranja 300ml",1]] },
     semana: { fat:11880.07, deltaFat:-20.2, itT:1.74, itMeta:2.20, tk:34.64, cmv:null, cmvMeta:35, proj:null, projMeta:250000,
-      periodo:'17/08 - 23/08/2026 (seg-dom)', deltaMesAnt:-73.5, deltaAnoAnt:-35.3,
+      periodo:'17/08 – 23/08/2026 (seg–dom)', deltaMesAnt:-73.5, deltaAnoAnt:-35.3,
       horas:[0,0,0,0,7,28,70,58,38,19,18,16,30,33,26,0],
       top:[["Pão com Pernil",78],["Buffet Massas",64],["Chop Caneca 360ml",51],["Kids Bovino",19],
            ["Power Tilápia",19],["Pastel Misto Und",18],["Filé de Frango",17],["Coca-Cola Zero",17],
@@ -405,7 +407,7 @@ const DATA = {
            ["Soda Italiana Maçã",1],["Quarta",1],["Vodka Nacional",1],["Torresmo",1],
            ["White Horse",1],["Pastel Kg",1]] },
     mes:    { fat:71180.54, deltaFat:null, itT:1.76, itMeta:2.20, tk:37.88, cmv:null, cmvMeta:35, proj:null, projMeta:315000,
-      periodo:'25/07 - 24/08/2026',
+      periodo:'25/07 – 24/08/2026',
       horas:[0,0,0,1,15,165,372,310,203,144,99,107,130,184,144,5],
       top:[["Buffet Massas",550],["Pão com Pernil",310],["Chop Caneca 360ml",245],["Coca-Cola Zero",164],
            ["Pastel Misto Und",132],["Coca-Cola",124],["Chop Happy Hour Caneca 360ml",72],["Filé de Frango",70],
@@ -430,7 +432,7 @@ const DATA = {
            ["Sprite Lemon Fresh",1],["Suco Maguary Uva",1],["Suco Laranja 300ml",1],
            ["Yo Pro 15g Cappuccino 250ml",1],["Trident Canela",1],["Açaí Kg",1],["Self Almoço",0]] },
     semana: { fat:119732.48, deltaFat:-9.2, itT:1.61, itMeta:2.00, tk:20.74, cmv:null, cmvMeta:35, proj:null, projMeta:445000,
-      periodo:'17/08 - 23/08/2026 (seg-dom)', deltaMesAnt:-61.8, deltaAnoAnt:33.0,
+      periodo:'17/08 – 23/08/2026 (seg–dom)', deltaMesAnt:-61.8, deltaAnoAnt:33.0,
       horas:[0,4,251,304,341,369,426,466,361,408,529,594,730,551,339,100],
       top:[["Espetinho Frango Empanado",411],["Agua Crystal Sem Gas",263],["Balas Diversas",241],["Pastel de Queijo",209],
            ["Cafe Coado S/ Acucar",172],["Agua Crystal Com Gas",152],["Coca Zero 310ml",143],["Torta de Frango",117],
@@ -439,7 +441,7 @@ const DATA = {
            ["Tap/Crep Cremosa",1],["Tap/Crep Frango Mucarela Banana Canela",1],["Top Way 100 Whey Chocolate Avelã",1],
            ["Yopro Morango 15g 250ml",1],["Torresmo",1],["Iogurte Kg",1],["Super Bar Banoffee 45g",1]] },
     mes:    { fat:602218.33, deltaFat:null, itT:1.75, itMeta:2.00, tk:23.26, cmv:null, cmvMeta:35, proj:null, projMeta:560000,
-      periodo:'25/07 - 24/08/2026',
+      periodo:'25/07 – 24/08/2026',
       horas:[0,140,1045,1307,1429,1791,2126,2154,1799,2080,2554,2770,2842,2042,1364,445],
       top:[["Espetinho Frango Empanado",1697],["Agua Crystal Sem Gas",1429],["Cafe Coado S/ Acucar",992],["Pastel de Queijo",989],
            ["Balas Diversas",968],["Agua Crystal Com Gas",896],["Buffet Massas",803],["Self Almoço",775],
@@ -464,26 +466,38 @@ let state = { unit:'fit', period:'hoje' };
 
 function renderKPIs(){
   const d = DATA[state.unit][state.period];
-  const faturamentoDelta = d.deltaFat===null ? null : d.deltaFat;
-  const faturamentoLabel = d.deltaFat===null
-    ? (state.period==='hoje' ? 'parcial - até 10h43, sem comparativo' : 'sem período anterior no dado importado')
-    : (d.deltaFat>=0?'+':'')+d.deltaFat.toFixed(1)+'% vs período anterior';
+  const rotulo = state.period==='hoje' ? 'dia'
+               : state.period==='semana' ? 'semana'
+               : 'periodo';
+  const rotuloAnterior = state.period==='hoje' ? 'dia anterior'
+                       : state.period==='semana' ? 'semana anterior'
+                       : 'mes anterior';
+
+  const faturamentoDelta = (d.deltaFat===null || d.deltaFat===undefined) ? null : d.deltaFat;
+  const faturamentoLabel = (d.deltaFat===null || d.deltaFat===undefined)
+    ? 'sem dado do '+rotuloAnterior+' para comparar'
+    : (d.deltaFat>=0?'+':'')+d.deltaFat.toFixed(1)+'% vs '+rotuloAnterior;
+
   const extraCompares = [];
-  if(d.deltaMesAnt !== undefined){
-    extraCompares.push({ up: d.deltaMesAnt>=0, text: (d.deltaMesAnt>=0?'+':'')+d.deltaMesAnt.toFixed(1)+'% vs mesma semana do mês anterior' });
+  if(d.deltaMesAnt===null || d.deltaMesAnt===undefined){
+    extraCompares.push({ up:null, text:'sem dado do mesmo '+rotulo+' do mes anterior' });
+  } else {
+    extraCompares.push({ up: d.deltaMesAnt>=0, text: (d.deltaMesAnt>=0?'+':'')+d.deltaMesAnt.toFixed(1)+'% vs mesmo '+rotulo+' do mes anterior' });
   }
-  if(d.deltaAnoAnt !== undefined){
-    extraCompares.push({ up: d.deltaAnoAnt>=0, text: (d.deltaAnoAnt>=0?'+':'')+d.deltaAnoAnt.toFixed(1)+'% vs mesma semana do ano anterior' });
+  if(d.deltaAnoAnt===null || d.deltaAnoAnt===undefined){
+    extraCompares.push({ up:null, text:'sem dado do mesmo '+rotulo+' do ano anterior' });
+  } else {
+    extraCompares.push({ up: d.deltaAnoAnt>=0, text: (d.deltaAnoAnt>=0?'+':'')+d.deltaAnoAnt.toFixed(1)+'% vs mesmo '+rotulo+' do ano anterior' });
   }
   const kpis = [
     { label:'Faturamento', value: fmtR(d.fat), delta: faturamentoDelta, deltaLabel: faturamentoLabel, extra: extraCompares },
     { label:'Itens por ticket', value: d.itT.toFixed(2).replace('.',','), delta: d.itT-d.itMeta, deltaLabel: 'meta '+d.itMeta.toFixed(2).replace('.',',') },
     { label:'Ticket médio', value: fmtR(d.tk), delta: null, deltaLabel: 'por venda' },
     d.cmv===null
-      ? { label:'CMV %', value: '-', delta: null, deltaLabel: 'exige dado de custo (não vem no relatório de vendas)' }
+      ? { label:'CMV %', value: '—', delta: null, deltaLabel: 'exige dado de custo (não vem no relatório de vendas)' }
       : { label:'CMV %', value: d.cmv.toFixed(1).replace('.',',')+'%', delta: d.cmvMeta-d.cmv, deltaLabel: 'meta '+d.cmvMeta+'%' },
     d.proj===null
-      ? { label:'Projeção do mês', value: '-', delta: null, deltaLabel: 'ativa quando o período cobrir o mês corrente' }
+      ? { label:'Projeção do mês', value: '—', delta: null, deltaLabel: 'ativa quando o período cobrir o mês corrente' }
       : { label:'Projeção do mês', value: fmtR(d.proj), delta: d.proj-d.projMeta, deltaLabel: 'meta '+fmtR(d.projMeta) },
   ];
   const row = document.getElementById('kpiRow');
@@ -491,15 +505,22 @@ function renderKPIs(){
     let deltaHtml = '';
     if(k.delta !== null){
       const up = k.delta >= 0;
-      deltaHtml = `<span class="delta ${up?'up':'down'}">${up?'+':'-'} ${k.deltaLabel}</span>`;
+      deltaHtml = `<span class="delta ${up?'up':'down'}">${up?'▲':'▼'} ${k.deltaLabel}</span>`;
     } else {
       deltaHtml = `<span class="ticket-ref">${k.deltaLabel}</span>`;
     }
     let extraHtml = '';
     if(k.extra && k.extra.length){
-      extraHtml = k.extra.map(e=>`<div class="ticket-meta" style="margin-top:3px">
-        <span class="delta ${e.up?'up':'down'}">${e.up?'+':'-'} ${e.text}</span>
-      </div>`).join('');
+      extraHtml = k.extra.map(e=>{
+        if(e.up===null){
+          return `<div class="ticket-meta" style="margin-top:3px">
+            <span class="ticket-ref">${e.text}</span>
+          </div>`;
+        }
+        return `<div class="ticket-meta" style="margin-top:3px">
+          <span class="delta ${e.up?'up':'down'}">${e.up?'+':'-'} ${e.text}</span>
+        </div>`;
+      }).join('');
     }
     return `<div class="ticket">
       <div class="ticket-label">${k.label}</div>
@@ -528,7 +549,7 @@ function renderChart(){
   const min = Math.min(...d.horas);
   const lowIdx = d.horas.indexOf(min);
   document.getElementById('peakNote').innerHTML =
-    `Pico de fluxo: <b>${HOURS[peakIdx]}h</b> (${max} vendas) - Menor fluxo: <b>${HOURS[lowIdx]}h</b> (${min} vendas)`;
+    `Pico de fluxo: <b>${HOURS[peakIdx]}h</b> (${max} vendas) · Menor fluxo: <b>${HOURS[lowIdx]}h</b> (${min} vendas)`;
   document.getElementById('chartTag').textContent = unitLabel(state.unit);
   document.getElementById('chartTag').className = 'panel-tag ' + state.unit;
 }
@@ -580,22 +601,22 @@ function renderMatrix(){
   grid.innerHTML = `
     <div class="quad puzzle">
       <div class="quad-title">PUZZLES</div>
-      <div class="quad-def">Baixa popularidade - alta margem</div>
+      <div class="quad-def">Baixa popularidade · alta margem</div>
       <div class="quad-items">${m.puzzle.join('<br>')}</div>
     </div>
     <div class="quad stars">
       <div class="quad-title">ESTRELAS</div>
-      <div class="quad-def">Alta popularidade - alta margem</div>
+      <div class="quad-def">Alta popularidade · alta margem</div>
       <div class="quad-items">${m.stars.join('<br>')}</div>
     </div>
     <div class="quad dogs">
       <div class="quad-title">DOGS</div>
-      <div class="quad-def">Baixa popularidade - baixa margem</div>
+      <div class="quad-def">Baixa popularidade · baixa margem</div>
       <div class="quad-items">${m.dogs.join('<br>')}</div>
     </div>
     <div class="quad plow">
       <div class="quad-title">CAVALOS DE BATALHA</div>
-      <div class="quad-def">Alta popularidade - baixa margem</div>
+      <div class="quad-def">Alta popularidade · baixa margem</div>
       <div class="quad-items">${m.plow.join('<br>')}</div>
     </div>`;
 }
@@ -632,11 +653,11 @@ function renderCompare(){
 
 function renderActions(){
   const actions = [
-    { tag:'urgente', text:'CMV da <b>Vila Gourmet</b> em 38,9% no mês - 3,9pp acima da meta. Revisar custo de <b>Batata Frita Grande</b> e <b>Combo Lanche+Refri</b>.' },
-    { tag:'atencao', text:'Fluxo baixo às <b>15h-17h</b> em ambas as unidades. Avaliar redução de equipe no turno ou promoção "Tarde Fit" para reativar demanda.' },
-    { tag:'oportunidade', text:'<b>Salada de Grão-de-Bico</b> (Vila Fit) e <b>Salada Funcional</b> (Vila Gourmet) são "Dogs" há semanas - avaliar remoção ou reformulação do prato.' },
-    { tag:'oportunidade', text:'Itens/ticket geral abaixo da meta (1,58 de 1,80 na Vila Fit). Treinar caixa para sugerir itens "Puzzle" - alta margem, baixa saída - no fechamento da venda.' },
-    { tag:'atencao', text:'Pico de terça-feira no almoço concentra o maior volume da semana em ambas as unidades - validar escala de cozinha e caixa nesse horário.' },
+    { tag:'urgente', text:'CMV da <b>Vila Gourmet</b> em 38,9% no mês — 3,9pp acima da meta. Revisar custo de <b>Batata Frita Grande</b> e <b>Combo Lanche+Refri</b>.' },
+    { tag:'atencao', text:'Fluxo baixo às <b>15h–17h</b> em ambas as unidades. Avaliar redução de equipe no turno ou promoção "Tarde Fit" para reativar demanda.' },
+    { tag:'oportunidade', text:'<b>Salada de Grão-de-Bico</b> (Vila Fit) e <b>Salada Funcional</b> (Vila Gourmet) são "Dogs" há semanas — avaliar remoção ou reformulação do prato.' },
+    { tag:'oportunidade', text:'Itens/ticket geral abaixo da meta (1,58 de 1,80 na Vila Fit). Treinar caixa para sugerir itens "Puzzle" — alta margem, baixa saída — no fechamento da venda.' },
+    { tag:'atencao', text:'Pico de terça-feira no almoço concentra o maior volume da semana em ambas as unidades — validar escala de cozinha e caixa nesse horário.' },
   ];
   document.getElementById('actionsList').innerHTML = actions.map(a=>`
     <li class="action-item">
@@ -653,13 +674,13 @@ function renderRunrate(){
     `com base em ${fmtR(f.fatAcumulado)} até ${f.dataCorte} (${f.diasDecorridos}/${f.diasMes} dias)`;
 
   const linhas = [];
-  // Mês anterior (julho/2026) - ainda não extraído o fechamento completo
+  // Mês anterior (julho/2026) — ainda não extraído o fechamento completo
   if(f.fatMesAnterior){
     linhas.push(`<div class="line">JUL/2026: <b>${fmtR(f.fatMesAnterior)}</b></div>`);
   } else {
-    linhas.push(`<div class="line pending">JUL/2026 - mês fechado ainda não extraído</div>`);
+    linhas.push(`<div class="line pending">JUL/2026 — mês fechado ainda não extraído</div>`);
   }
-  // Mesmo mês, ano anterior - agora com o mês FECHADO completo
+  // Mesmo mês, ano anterior — agora com o mês FECHADO completo
   linhas.push(`<div class="line">${f.anoAnteriorLabel}: <b>${fmtR(f.fatAnoAnterior)}</b></div>`);
   linhas.push(`<div class="line" style="margin-top:2px">AGO/2026 (projeção de fechamento): <b>${fmtR(projecao)}</b></div>`);
   document.getElementById('runrateCompare').innerHTML = linhas.join('');
@@ -691,17 +712,16 @@ themeBtn.addEventListener('click', ()=>{
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
   if(isLight){
     document.documentElement.removeAttribute('data-theme');
-    themeBtn.textContent = '[dia]';
+    themeBtn.textContent = '☀';
     themeBtn.title = 'Alternar fundo claro/escuro';
   } else {
     document.documentElement.setAttribute('data-theme','light');
-    themeBtn.textContent = '[noite]';
+    themeBtn.textContent = '☾';
     themeBtn.title = 'Alternar fundo claro/escuro';
   }
 });
 
-if (window.iniciarDadosVivos) { window.iniciarDadosVivos(); } else { renderAll(); }
+renderAll();
 </script>
-  <script src="dados-live.js"></script>
 </body>
 </html>
