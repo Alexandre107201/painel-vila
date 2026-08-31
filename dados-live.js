@@ -34,17 +34,28 @@
    }
 
    function buscar(de, ate) {
-         var url = SUPABASE_URL + "/rest/v1/vendas_teknisa?select=*&data=gte." + de + "&data=lte." + ate + "&limit=50000";
-         return fetch(url, {
-                 headers: {
+         var pagina = 1000;
+         function buscarPagina(offset) {
+               var url = SUPABASE_URL + "/rest/v1/vendas_teknisa?select=*&data=gte." + de +
+                     "&data=lte." + ate + "&order=id.asc&limit=" + pagina + "&offset=" + offset;
+               return fetch(url, {
+                     headers: {
                            apikey: SUPABASE_ANON_KEY,
                            Authorization: "Bearer " + SUPABASE_ANON_KEY
-                 }
-         }).then(function (r) {
-                 if (!r.ok) throw new Error("HTTP " + r.status);
-                 return r.json();
-         }).catch(function () {
-                 return [];
+                     }
+               }).then(function (r) {
+                     if (!r.ok) throw new Error("HTTP " + r.status);
+                     return r.json();
+               }).then(function (linhas) {
+                     if (linhas.length < pagina) return linhas;
+                     return buscarPagina(offset + pagina).then(function (proximas) {
+                           return linhas.concat(proximas);
+                     });
+               });
+         }
+         return buscarPagina(0).catch(function (e) {
+               console.error("Falha na consulta de " + de + " a " + ate + ".", e);
+               return [];
          });
    }
 
@@ -195,12 +206,25 @@
               var dHoje = r[0], dOnt = r[1], dMes = r[2], dAno = r[3];
               var wAtual = r[4], wAnt = r[5], wMes = r[6], wAno = r[7];
               var mAtual = r[8], mAnt = r[9], mAno = r[10];
+              var dataExibida = d0;
+              var usandoUltimoDia = false;
+              if (!dHoje.length && mAtual.length) {
+                    dataExibida = mAtual.reduce(function (max, linha) {
+                          return String(linha.data) > max ? String(linha.data) : max;
+                    }, "");
+                    dHoje = mAtual.filter(function (linha) { return String(linha.data) === dataExibida; });
+                    usandoUltimoDia = true;
+              }
+              var partesDataExibida = dataExibida.split("-");
+              var dataExibidaObj = new Date(Number(partesDataExibida[0]), Number(partesDataExibida[1]) - 1, Number(partesDataExibida[2]));
               function unidade(chave) {
                         var fHoje = filtrar(dHoje, chave);
                         var fSem = filtrar(wAtual, chave);
                         var fMes = filtrar(mAtual, chave);
                         return {
-                                    hoje: bloco(fHoje, "Hoje - " + fmtBR(hoje), {
+                                    hoje: bloco(fHoje, usandoUltimoDia
+                                          ? "Últimos dados importados - " + fmtBR(dataExibidaObj)
+                                          : "Hoje - " + fmtBR(hoje), {
                                                   anterior: pct(somaFat(fHoje), somaFat(filtrar(dOnt, chave))),
                                                   mesAnterior: pct(somaFat(fHoje), somaFat(filtrar(dMes, chave))),
                                                   anoAnterior: pct(somaFat(fHoje), somaFat(filtrar(dAno, chave)))
@@ -244,7 +268,12 @@
                         ambas: fech("ambas")
               };
               var nota = document.getElementById("dataSourceNote");
-              if (nota) { nota.textContent = "DADOS AO VIVO - atualizado em " + new Date().toLocaleString("pt-BR"); }
+              if (nota) {
+                    nota.textContent = usandoUltimoDia
+                          ? "ATENÇÃO: última venda importada em " + fmtBR(dataExibidaObj) + " · dados de hoje ainda não recebidos"
+                          : "DADOS AO VIVO · atualizado em " + new Date().toLocaleString("pt-BR");
+                    nota.style.color = usandoUltimoDia ? "var(--gourmet)" : "";
+              }
       }).catch(function (e) {
               console.error("Falha ao carregar dados ao vivo.", e);
       }).then(function () {
