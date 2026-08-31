@@ -342,12 +342,13 @@
   <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Vila Fit = caixas 001-003/010/009/004; Vila Gourmet = caixas 005-008 (mesma unidade desde a fusão de abril/2026) — corrigido para não contar as vendas do Gourmet dentro do Fit. Padrão de semana: segunda a domingo (mostrando a última completa, 17–23/08; a semana corrente só começou hoje). Na Semana, "vs período anterior" compara com 10–16/08; "vs mesma semana do mês anterior" compara com 20–26/07/2026; "vs mesma semana do ano anterior" compara com 18–24/08/2025 (Gourmet operava como unidade própria "0001" nessa época). CMV e Projeção ficam em branco pois este relatório não traz custo por produto.</div>
 </div>
 
+<script src="dados-live.js?v=20260831-1"></script>
 <script>
 // Projeção de fechamento do mês (regra de três: faturamento acumulado ÷ dias
 // decorridos × dias do mês). Baseado no mês calendário corrente (agosto/2026).
 // dataCorte reflete até onde o dado real chega — atualiza sozinho quando a
 // extração automática estiver rodando dia a dia.
-const FECHAMENTO = {
+var FECHAMENTO = {
   fit:     { fatAcumulado:345108.38, diasDecorridos:24, diasMes:31, dataCorte:'24/08/2026',
              fatMesAnterior:null, fatAnoAnterior:303814.50, anoAnteriorLabel:'AGO/2025' },
   gourmet: { fatAcumulado:42424.74,  diasDecorridos:24, diasMes:31, dataCorte:'24/08/2026',
@@ -356,7 +357,7 @@ const FECHAMENTO = {
              fatMesAnterior:null, fatAnoAnterior:373727.08, anoAnteriorLabel:'AGO/2025' }
 };
 
-const DATA = {
+var DATA = {
   fit: {
     hoje:   { fat:1333.86,  deltaFat:null,  itT:1.21, itMeta:1.80, tk:16.27, cmv:null, cmvMeta:35, proj:null, projMeta:195000,
       periodo:'24/08/2026 (parcial até 10h43)',
@@ -577,8 +578,8 @@ function renderHeatmap(){
 
 function renderRankings(){
   const d = DATA[state.unit][state.period];
-  const maxTop = d.top[0][1];
-  const maxBottom = d.bottom[d.bottom.length-1][1];
+  const maxTop = d.top.length ? (Number(d.top[0][1]) || 1) : 1;
+  const maxBottom = d.bottom.length ? (Number(d.bottom[d.bottom.length-1][1]) || 1) : 1;
   document.getElementById('topList').innerHTML = d.top.map((it,i)=>`
     <li class="rank-item">
       <span class="rank-idx num">${i+1}</span>
@@ -629,12 +630,15 @@ function renderCompare(){
     { label:'Itens/ticket', fv:f.itT, gv:g.itT, fmt:v=>v.toFixed(2).replace('.',',') },
     { label:'CMV %', fv:f.cmv, gv:g.cmv, fmt:v=>v.toFixed(1).replace('.',',')+'%' },
   ];
-  const maxes = rows.map(r=>Math.max(r.fv,r.gv));
+  const isNumber = v => typeof v === 'number' && Number.isFinite(v);
+  const maxes = rows.map(r=>Math.max(isNumber(r.fv)?r.fv:0, isNumber(r.gv)?r.gv:0));
+  const valueText = (r,v) => isNumber(v) ? r.fmt(v) : '—';
+  const barWidth = (v,max) => (isNumber(v) && max>0) ? (v/max*100).toFixed(0) : '0';
   document.getElementById('compareRows').innerHTML = rows.map((r,i)=>`
     <div class="compare-row">
-      <div class="compare-val num" style="text-align:right;color:var(--fit)">${r.fmt(r.fv)}</div>
+      <div class="compare-val num" style="text-align:right;color:var(--fit)">${valueText(r,r.fv)}</div>
       <div class="compare-track left">
-        <div class="compare-fill-wrap left"><div class="compare-fill fit" style="width:${(r.fv/maxes[i]*100).toFixed(0)}%"></div></div>
+        <div class="compare-fill-wrap left"><div class="compare-fill fit" style="width:${barWidth(r.fv,maxes[i])}%"></div></div>
       </div>
       <div style="display:none"></div>
     </div>`).join('') +
@@ -642,9 +646,9 @@ function renderCompare(){
   // Build properly with label centered
   document.getElementById('compareRows').innerHTML = rows.map((r,i)=>`
     <div class="compare-row">
-      <div class="compare-val num" style="text-align:right;color:var(--fit)">${r.fmt(r.fv)}</div>
-      <div class="compare-fill-wrap left"><div class="compare-fill fit" style="width:${(r.fv/maxes[i]*100).toFixed(0)}%"></div></div>
-      <div class="compare-fill-wrap"><div class="compare-fill gourmet" style="width:${(r.gv/maxes[i]*100).toFixed(0)}%"></div></div>
+      <div class="compare-val num" style="text-align:right;color:var(--fit)">${valueText(r,r.fv)}</div>
+      <div class="compare-fill-wrap left"><div class="compare-fill fit" style="width:${barWidth(r.fv,maxes[i])}%"></div></div>
+      <div class="compare-fill-wrap"><div class="compare-fill gourmet" style="width:${barWidth(r.gv,maxes[i])}%"></div></div>
     </div>
     <div class="compare-row" style="grid-template-columns:1fr;margin-top:-10px;margin-bottom:2px">
       <div class="compare-label" style="text-align:center">${r.label}</div>
@@ -722,6 +726,7 @@ themeBtn.addEventListener('click', ()=>{
 });
 
 renderAll();
+if (typeof iniciarDadosVivos === 'function') iniciarDadosVivos();
 </script>
 </body>
 </html>
