@@ -70,7 +70,9 @@
 
    function kpis(linhas) {
          var vendas = {};
-         linhas.forEach(function (l) { vendas[l.nr_venda] = true; });
+         linhas.forEach(function (l) {
+                 vendas[(l.operacao || "") + "|" + (l.data || "") + "|" + (l.nr_venda || "")] = true;
+         });
          var qtdVendas = Object.keys(vendas).length;
          var qtdItens = linhas.reduce(function (s, l) { return s + Number(l.quantidade || 0); }, 0);
          var fat = somaFat(linhas);
@@ -179,8 +181,24 @@
 
    function fmtBR(d) { return d.toLocaleDateString("pt-BR"); }
 
-   function iniciarDadosVivos() {
-         var hoje = new Date();
+   function buscarUltimaData() {
+         var url = SUPABASE_URL + "/rest/v1/vendas_teknisa?select=data&order=data.desc&limit=1";
+         return fetch(url, {
+               headers: {
+                     apikey: SUPABASE_ANON_KEY,
+                     Authorization: "Bearer " + SUPABASE_ANON_KEY
+               }
+         }).then(function (r) {
+               if (!r.ok) throw new Error("HTTP " + r.status);
+               return r.json();
+         }).then(function (linhas) {
+               if (!linhas.length || !linhas[0].data) return new Date();
+               var p = String(linhas[0].data).split("-");
+               return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+         });
+   }
+
+   function carregarDados(hoje) {
          var d0 = iso(hoje);
          var dOntem = iso(addDias(hoje, -1));
          var dMesAnt = iso(addMeses(hoje, -1));
@@ -279,6 +297,13 @@
       }).then(function () {
               if (window.renderAll) window.renderAll();
       });
+   }
+
+   function iniciarDadosVivos() {
+         buscarUltimaData().then(carregarDados).catch(function (e) {
+               console.error("Falha ao localizar a data mais recente.", e);
+               carregarDados(new Date());
+         });
    }
 
    window.iniciarDadosVivos = iniciarDadosVivos;
