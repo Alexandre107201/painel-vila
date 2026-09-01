@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Vila Atualizado — Vila Fit × Vila Gourmet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14171a;
+    --bg-2:#191d20;
+    --surface:#1e2226;
+    --surface-2:#262b30;
+    --border:#33393f;
+    --border-soft:#2a2f34;
+    --text:#edeee9;
+    --text-2:#a3abb2;
+    --text-3:#6b747b;
+    --fit:#7fb069;
+    --fit-soft:#7fb06926;
+    --gourmet:#e4a73c;
+    --gourmet-soft:#e4a73c26;
+    --bad:#e1614f;
+    --bad-soft:#e1614f22;
+    --blue:#5b8aa6;
+    --purple:#9b7fd4;
+    --ambas:#5b8aa6;
+    --ambas-soft:#5b8aa626;
+    --radius:14px;
+  }
+  html[data-theme="light"]{
+    --bg:#f4f5f3;
+    --bg-2:#ececea;
+    --surface:#ffffff;
+    --surface-2:#eef0ee;
+    --border:#dcdfdb;
+    --border-soft:#e6e8e4;
+    --text:#20241f;
+    --text-2:#5a635a;
+    --text-3:#8a938a;
+  }
+  body{transition:background .2s, color .2s;}
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  .dashboard{max-width:1320px;margin:0 auto;padding:28px 24px 60px;position:relative;}
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:16px;
+    padding-bottom:20px;border-bottom:1px solid var(--border-soft);margin-bottom:24px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--fit),var(--gourmet));
+    display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:#14171a;
+  }
+  .brand-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;line-height:1;}
+  .brand-sub{font-size:12px;color:var(--text-3);margin-top:3px;}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;}
+  .unit-toggle,.period-toggle{
+    display:flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;
+  }
+  .unit-btn,.period-btn{
+    font-family:'IBM Plex Sans',sans-serif;font-size:12.5px;font-weight:600;color:var(--text-2);
+    background:transparent;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;transition:.15s;
+  }
+  .unit-btn.active[data-unit="fit"]{background:var(--fit);color:#10130f;}
+  .unit-btn.active[data-unit="gourmet"]{background:var(--gourmet);color:#1a1305;}
+  .unit-btn.active[data-unit="ambas"]{background:var(--ambas);color:#0d1a20;}
+  .period-btn.active{background:var(--surface-2);color:var(--text);}
+  .unit-btn:hover:not(.active),.period-btn:hover:not(.active){color:var(--text);}
+  .theme-toggle{
+    width:36px;height:36px;border-radius:10px;background:var(--surface);border:1px solid var(--border);
+    color:var(--text-2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:.15s;
+  }
+  .theme-toggle:hover{color:var(--text);border-color:var(--text-3);}
+  .timestamp{font-size:11px;color:var(--text-3);letter-spacing:.4px;font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- RUNRATE CARD (canto superior direito) ---------- */
+  .runrate-card{
+    position:absolute;top:0;right:24px;width:290px;
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:14px 16px;text-align:right;
+  }
+  .runrate-label{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--text-3);font-weight:600;}
+  .runrate-value{font-size:22px;font-weight:700;margin-top:4px;letter-spacing:-.3px;color:var(--fit);}
+  .runrate-basis{font-size:10.5px;color:var(--text-3);margin-top:3px;line-height:1.4;}
+  .runrate-compare{margin-top:8px;border-top:1px dashed var(--border);padding-top:7px;display:flex;flex-direction:column;gap:5px;text-align:left;}
+  .runrate-compare .line{font-size:11px;line-height:1.4;}
+  .runrate-compare .line b{font-weight:600;}
+  .runrate-compare .up{color:var(--fit);}
+  .runrate-compare .down{color:var(--bad);}
+  .runrate-compare .pending{color:var(--text-3);font-style:italic;}
+  @media (max-width:900px){
+    .runrate-card{position:static;width:auto;text-align:left;margin-bottom:16px;}
+  }
+
+  /* ---------- KPI TICKETS ---------- */
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:8px;}
+  .period-range{font-size:11.5px;color:var(--text-3);font-family:'IBM Plex Mono',monospace;margin-bottom:20px;}
+  .ticket{
+    position:relative;background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:16px 16px 14px;overflow:visible;
+  }
+  .ticket::before,.ticket::after{
+    content:"";position:absolute;top:46px;width:16px;height:16px;background:var(--bg);border-radius:50%;
+  }
+  .ticket::before{left:-9px;}
+  .ticket::after{right:-9px;}
+  .ticket-perf{
+    border-top:1px dashed var(--border);margin:12px -16px 10px;
+  }
+  .ticket-label{font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3);font-weight:600;}
+  .ticket-value{font-size:25px;font-weight:700;margin-top:6px;letter-spacing:-.3px;}
+  .ticket-meta{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;margin-top:2px;}
+  .delta{font-weight:600;}
+  .delta.up{color:var(--fit);}
+  .delta.down{color:var(--bad);}
+  .ticket-ref{color:var(--text-3);}
+
+  /* ---------- PANELS ---------- */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+  .panel-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px;}
+  .panel-head h2{font-size:14.5px;margin:0;font-weight:600;}
+  .panel-tag{font-size:10px;letter-spacing:1px;font-weight:700;padding:3px 8px;border-radius:5px;font-family:'IBM Plex Mono',monospace;}
+  .panel-tag.fit{background:var(--fit-soft);color:var(--fit);}
+  .panel-tag.gourmet{background:var(--gourmet-soft);color:var(--gourmet);}
+  .panel-tag.ambas{background:var(--ambas-soft);color:var(--ambas);}
+  .panel-note{font-size:11px;color:var(--text-3);}
+
+  .mid-row{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:16px;}
+
+  /* vendas por hora bars */
+  .bars{display:flex;align-items:flex-end;gap:6px;height:150px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;}
+  .bar{width:100%;border-radius:4px 4px 0 0;background:var(--fit);transition:.25s;position:relative;}
+  .bar[data-unit="gourmet"]{background:var(--gourmet);}
+  .bar[data-unit="ambas"]{background:var(--ambas);}
+  .bars-axis{display:flex;gap:6px;margin-top:6px;}
+  .axis-col{flex:1;text-align:center;font-size:9.5px;color:var(--text-3);font-family:'IBM Plex Mono',monospace;}
+  .peak-note{margin-top:12px;font-size:11.5px;color:var(--text-2);border-top:1px solid var(--border-soft);padding-top:10px;}
+  .peak-note b{color:var(--text);}
+
+  /* heatmap */
+  .heatmap{display:grid;grid-template-columns:60px repeat(7,1fr);gap:4px;}
+  .hm-corner{font-size:9px;}
+  .hm-head{font-size:10px;text-align:center;color:var(--text-3);font-weight:600;padding-bottom:2px;}
+  .hm-row-label{font-size:10px;color:var(--text-2);display:flex;align-items:center;}
+  .hm-cell{aspect-ratio:1/0.85;border-radius:5px;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-family:'IBM Plex Mono',monospace;color:#0d0f10;font-weight:600;}
+
+  /* rankings */
+  .rankings-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .rank-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;}
+  .rank-item{display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:7px;}
+  .rank-item:hover{background:var(--surface-2);}
+  .rank-idx{width:20px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-3);}
+  .rank-name{flex:1;font-size:13px;}
+  .rank-bar-wrap{width:80px;height:6px;background:var(--surface-2);border-radius:4px;overflow:hidden;}
+  .rank-bar{height:100%;border-radius:4px;}
+  .rank-list--up .rank-bar{background:var(--fit);}
+  .rank-list--down .rank-bar{background:var(--bad);}
+  .rank-qty{width:34px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-2);}
+
+  /* menu engineering matrix */
+  .matrix-panel{margin-bottom:16px;}
+  .matrix-wrap{display:flex;gap:10px;}
+  .matrix-axis-y{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;color:var(--text-3);
+    display:flex;align-items:center;justify-content:center;letter-spacing:.5px;}
+  .matrix-body{flex:1;}
+  .matrix-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;}
+  .quad{border-radius:10px;padding:14px;min-height:108px;}
+  .quad-title{font-size:11.5px;font-weight:700;letter-spacing:.3px;margin-bottom:3px;}
+  .quad-def{font-size:10px;color:var(--text-3);margin-bottom:8px;}
+  .quad-items{font-size:12px;line-height:1.7;}
+  .quad.stars{background:#7fb06920;border:1px solid #7fb06945;}
+  .quad.stars .quad-title{color:var(--fit);}
+  .quad.plow{background:#5b8aa620;border:1px solid #5b8aa645;}
+  .quad.plow .quad-title{color:var(--blue);}
+  .quad.puzzle{background:#9b7fd420;border:1px solid #9b7fd445;}
+  .quad.puzzle .quad-title{color:var(--purple);}
+  .quad.dogs{background:#e1614f18;border:1px solid #e1614f45;}
+  .quad.dogs .quad-title{color:var(--bad);}
+  .matrix-axis-x{text-align:center;font-size:10.5px;color:var(--text-3);margin-top:8px;}
+
+  /* compare */
+  .compare-panel{margin-bottom:16px;}
+  .compare-rows{display:flex;flex-direction:column;gap:14px;}
+  .compare-row{display:grid;grid-template-columns:150px 1fr 1fr;align-items:center;gap:14px;}
+  .compare-label{font-size:12px;color:var(--text-2);}
+  .compare-track{display:flex;align-items:center;gap:8px;}
+  .compare-track.left{flex-direction:row-reverse;}
+  .compare-fill-wrap{flex:1;height:22px;background:var(--surface-2);border-radius:5px;overflow:hidden;display:flex;}
+  .compare-fill-wrap.left{justify-content:flex-end;}
+  .compare-fill{height:100%;border-radius:5px;}
+  .compare-fill.fit{background:var(--fit);}
+  .compare-fill.gourmet{background:var(--gourmet);}
+  .compare-val{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;white-space:nowrap;width:92px;}
+  .compare-legend{display:flex;gap:18px;margin-bottom:14px;}
+  .legend-chip{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2);}
+  .legend-dot{width:9px;height:9px;border-radius:2px;}
+
+  /* actions */
+  .actions-panel{margin-bottom:6px;}
+  .actions-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;}
+  .action-item{display:flex;gap:12px;padding:11px 12px;border-radius:9px;background:var(--surface-2);align-items:flex-start;}
+  .action-tag{font-size:9.5px;font-weight:700;letter-spacing:.6px;padding:3px 7px;border-radius:5px;white-space:nowrap;
+    font-family:'IBM Plex Mono',monospace;margin-top:1px;}
+  .action-tag.urgente{background:var(--bad-soft);color:var(--bad);}
+  .action-tag.atencao{background:var(--gourmet-soft);color:var(--gourmet);}
+  .action-tag.oportunidade{background:var(--fit-soft);color:var(--fit);}
+  .action-text{font-size:13px;color:var(--text);line-height:1.5;}
+  .action-text b{color:var(--text);}
+
+  .footnote{text-align:center;font-size:11px;color:var(--text-3);margin-top:24px;}
+
+  @media (max-width:980px){
+    .kpi-row{grid-template-columns:repeat(2,1fr);}
+    .mid-row,.rankings-row{grid-template-columns:1fr;}
+    .compare-row{grid-template-columns:100px 1fr 1fr;}
+  }
+  @media (max-width:560px){
+    .kpi-row{grid-template-columns:1fr;}
+    .matrix-grid{grid-template-columns:1fr;}
+  }
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<meta name="theme-color" content="#14171a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Painel Vila">
+</head>
+<body>
+<div class="dashboard">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">V</div>
+      <div>
+        <div class="brand-name">PAINEL VILA</div>
+        <div class="brand-sub">Vila Fit · Vila Gourmet — Praia Clube, Uberlândia</div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="unit-toggle">
+        <button class="unit-btn active" data-unit="fit">Vila Fit</button>
+        <button class="unit-btn" data-unit="gourmet">Vila Gourmet</button>
+        <button class="unit-btn" data-unit="ambas">Ambas</button>
+      </div>
+      <div class="period-toggle">
+        <button class="period-btn active" data-period="hoje">Hoje</button>
+        <button class="period-btn" data-period="semana">Semana (seg–dom)</button>
+        <button class="period-btn" data-period="mes">Mês</button>
+      </div>
+      <button class="theme-toggle" id="themeToggle" title="Alternar fundo claro/escuro" aria-label="Alternar fundo claro/escuro">☀</button>
+    </div>
+    <div class="timestamp" id="dataSourceNote">24 AGO 2026 · DADOS REAIS (TEKNISA, 25/07–24/08) · VILA FIT + VILA GOURMET</div>
+  </div>
+
+  <div class="runrate-card" id="runrateCard">
+    <div class="runrate-label">Projeção de fechamento</div>
+    <div class="runrate-value num" id="runrateValue">—</div>
+    <div class="runrate-basis" id="runrateBasis"></div>
+    <div class="runrate-compare" id="runrateCompare"></div>
+  </div>
+
+  <div class="kpi-row" id="kpiRow"></div>
+  <div class="period-range" id="periodRange"></div>
+
+  <div class="mid-row">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Vendas por hora</h2>
+        <span class="panel-tag" id="chartTag">VILA FIT</span>
+      </div>
+      <div class="bars" id="horasChart"></div>
+      <div class="bars-axis" id="horasAxis"></div>
+      <div class="peak-note" id="peakNote"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Fluxo por turno</h2>
+        <span class="panel-tag" id="heatTag">VILA FIT</span>
+      </div>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+  </div>
+
+  <div class="rankings-row">
+    <div class="panel">
+      <div class="panel-head"><h2>Top 10 mais vendidos</h2></div>
+      <ol class="rank-list rank-list--up" id="topList"></ol>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Top 10 menos vendidos</h2></div>
+      <ol class="rank-list rank-list--down" id="bottomList"></ol>
+    </div>
+  </div>
+
+  <div class="panel matrix-panel">
+    <div class="panel-head">
+      <h2>Matriz de Engenharia de Cardápio</h2>
+      <span class="panel-note">Popularidade real (TEKNISA) × margem estimada — sem custo por produto ainda, classificação provisória</span>
+    </div>
+    <div class="matrix-wrap">
+      <div class="matrix-axis-y">MARGEM ↑</div>
+      <div class="matrix-body">
+        <div class="matrix-grid" id="matrixGrid"></div>
+        <div class="matrix-axis-x">POPULARIDADE →</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel compare-panel">
+    <div class="panel-head"><h2>Vila Fit × Vila Gourmet — hoje</h2></div>
+    <div class="compare-legend">
+      <div class="legend-chip"><span class="legend-dot" style="background:var(--fit)"></span>Vila Fit</div>
+      <div class="legend-chip"><span class="legend-dot" style="background:var(--gourmet)"></span>Vila Gourmet</div>
+    </div>
+    <div class="compare-rows" id="compareRows"></div>
+  </div>
+
+  <div class="panel actions-panel">
+    <div class="panel-head"><h2>Ações do dia</h2></div>
+    <ul class="actions-list" id="actionsList"></ul>
+  </div>
+
+  <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Vila Fit = caixas 001-003/010/009/004; Vila Gourmet = caixas 005-008 (mesma unidade desde a fusão de abril/2026) — corrigido para não contar as vendas do Gourmet dentro do Fit. Padrão de semana: segunda a domingo (mostrando a última completa, 17–23/08; a semana corrente só começou hoje). Na Semana, "vs período anterior" compara com 10–16/08; "vs mesma semana do mês anterior" compara com 20–26/07/2026; "vs mesma semana do ano anterior" compara com 18–24/08/2025 (Gourmet operava como unidade própria "0001" nessa época). CMV e Projeção ficam em branco pois este relatório não traz custo por produto.</div>
+</div>
+
+<script>
+(function () {
+    var SUPABASE_URL = "https://bbhtrxuaumhpqtbcgewc.supabase.co";
+    var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiaHRyeHVhdW1ocHF0YmNnZXdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNzQxMjAsImV4cCI6MjEwMjc1MDEyMH0.9Ea7sTK30uQ3FegcVb1qHmbp3FSkspMd09l0TZicyKY";
+
+   function iso(d) {
+         var y = d.getFullYear();
+         var m = String(d.getMonth() + 1).padStart(2, "0");
+         var dia = String(d.getDate()).padStart(2, "0");
+         return y + "-" + m + "-" + dia;
+   }
+
+   function addDias(d, n) {
+         var x = new Date(d);
+         x.setDate(x.getDate() + n);
+         return x;
+   }
+
+   function addMeses(d, n) {
+         var x = new Date(d);
+         x.setMonth(x.getMonth() + n);
+         return x;
+   }
+
+   function addAnos(d, n) {
+         var x = new Date(d);
+         x.setFullYear(x.getFullYear() + n);
+         return x;
+   }
+
+   function inicioSemana(d) {
+         var dia = d.getDay();
+         var diff = (dia + 6) % 7;
+         return addDias(d, -diff);
+   }
+
+   function buscar(de, ate) {
+         var pagina = 1000;
+         function buscarPagina(offset) {
+               var url = SUPABASE_URL + "/rest/v1/vendas_teknisa?select=*&data=gte." + de +
+                     "&data=lte." + ate + "&order=id.asc&limit=" + pagina + "&offset=" + offset;
+               return fetch(url, {
+                     headers: {
+                           apikey: SUPABASE_ANON_KEY,
+                           Authorization: "Bearer " + SUPABASE_ANON_KEY
+                     }
+               }).then(function (r) {
+                     if (!r.ok) throw new Error("HTTP " + r.status);
+                     return r.json();
+               }).then(function (linhas) {
+                     if (linhas.length < pagina) return linhas;
+                     return buscarPagina(offset + pagina).then(function (proximas) {
+                           return linhas.concat(proximas);
+                     });
+               });
+         }
+         return buscarPagina(0).catch(function (e) {
+               console.error("Falha na consulta de " + de + " a " + ate + ".", e);
+               return [];
+         });
+   }
+
+   function filtrar(linhas, chave) {
+         if (chave === "ambas") return linhas;
+         return linhas.filter(function (l) { return l.operacao === chave; });
+   }
+
+   function somaFat(linhas) {
+         return linhas.reduce(function (s, l) { return s + Number(l.valor_total || 0); }, 0);
+   }
+
+   function kpis(linhas) {
+         var vendas = {};
+         linhas.forEach(function (l) {
+                 vendas[(l.operacao || "") + "|" + (l.data || "") + "|" + (l.nr_venda || "")] = true;
+         });
+         var qtdVendas = Object.keys(vendas).length;
+         var qtdItens = linhas.reduce(function (s, l) { return s + Number(l.quantidade || 0); }, 0);
+         var fat = somaFat(linhas);
+         return {
+                 fat: fat,
+                 itT: qtdVendas ? qtdItens / qtdVendas : 0,
+                 tk: qtdVendas ? fat / qtdVendas : 0,
+                 itMeta: 2.0,
+                 cmv: null, cmvMeta: 35,
+                 proj: null, projMeta: 0
+         };
+   }
+
+   function topBottom(linhas) {
+         var m = {};
+         linhas.forEach(function (l) {
+                 var n = l.produto || "?";
+                 m[n] = (m[n] || 0) + Number(l.quantidade || 0);
+         });
+         var arr = Object.keys(m).map(function (k) { return [k, m[k]]; });
+         arr.sort(function (a, b) { return b[1] - a[1]; });
+         return { top: arr.slice(0, 10), bottom: arr.slice(-10).reverse() };
+   }
+
+   function horas(linhas) {
+         var h = [];
+         for (var i = 0; i < 16; i++) h.push(0);
+         linhas.forEach(function (l) {
+                 if (!l.hora) return;
+                 var hh = parseInt(String(l.hora).split(":")[0], 10);
+                 var idx = hh - 6;
+                 if (idx >= 0 && idx < 16) h[idx] += 1;
+         });
+         return h;
+   }
+
+   function heat(linhas) {
+         var faixas = [[6, 10], [11, 14], [15, 17], [18, 21]];
+         var grade = faixas.map(function () { return [0, 0, 0, 0, 0, 0, 0]; });
+         linhas.forEach(function (l) {
+                 if (!l.hora || !l.data) return;
+                 var hh = parseInt(String(l.hora).split(":")[0], 10);
+                 var partes = String(l.data).split("-");
+                 var dt = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+                 var col = (dt.getDay() + 6) % 7;
+                 for (var i = 0; i < faixas.length; i++) {
+                           if (hh >= faixas[i][0] && hh <= faixas[i][1]) { grade[i][col] += 1; break; }
+                 }
+         });
+         var max = 0;
+         grade.forEach(function (linha) { linha.forEach(function (v) { if (v > max) max = v; }); });
+         var valores = grade.map(function (linha) {
+                 return linha.map(function (v) { return max ? Math.round((v / max) * 100) : 0; });
+         });
+         return {
+                 rows: ["Manha (6-10h)", "Almoco (11-14h)", "Tarde (15-17h)", "Noite (18-21h)"],
+                 cols: ["SEG", "TER", "QUA", "QUI", "SEX", "SAB", "DOM"],
+                 values: valores
+         };
+   }
+
+   function matriz(linhas) {
+         var m = {};
+         linhas.forEach(function (l) {
+                 var n = l.produto || "?";
+                 if (!m[n]) m[n] = { qtd: 0, receita: 0 };
+                 m[n].qtd += Number(l.quantidade || 0);
+                 m[n].receita += Number(l.valor_total || 0);
+         });
+         var itens = Object.keys(m).map(function (k) {
+                 return { nome: k, qtd: m[k].qtd, preco: m[k].qtd ? m[k].receita / m[k].qtd : 0 };
+         });
+         if (!itens.length) return { stars: [], plow: [], puzzle: [], dogs: [] };
+         var medQtd = itens.reduce(function (s, i) { return s + i.qtd; }, 0) / itens.length;
+         var medPreco = itens.reduce(function (s, i) { return s + i.preco; }, 0) / itens.length;
+         var out = { stars: [], plow: [], puzzle: [], dogs: [] };
+         itens.forEach(function (i) {
+                 var pop = i.qtd >= medQtd;
+                 var mar = i.preco >= medPreco;
+                 if (pop && mar) out.stars.push(i.nome);
+                 else if (pop && !mar) out.plow.push(i.nome);
+                 else if (!pop && mar) out.puzzle.push(i.nome);
+                 else out.dogs.push(i.nome);
+         });
+         Object.keys(out).forEach(function (k) { out[k] = out[k].slice(0, 4); });
+         return out;
+   }
+
+   function pct(atual, anterior) {
+         if (!anterior) return null;
+         return ((atual - anterior) / anterior) * 100;
+   }
+
+   function bloco(linhas, periodo, comp) {
+         var k = kpis(linhas);
+         var tb = topBottom(linhas);
+         k.periodo = periodo;
+         k.horas = horas(linhas);
+         k.top = tb.top;
+         k.bottom = tb.bottom;
+         k.deltaFat = comp.anterior;
+         k.deltaMesAnt = comp.mesAnterior;
+         k.deltaAnoAnt = comp.anoAnterior;
+         return k;
+   }
+
+   function fmtBR(d) { return d.toLocaleDateString("pt-BR"); }
+
+   function buscarUltimaData() {
+         var url = SUPABASE_URL + "/rest/v1/vendas_teknisa?select=data&order=data.desc&limit=1";
+         return fetch(url, {
+               headers: {
+                     apikey: SUPABASE_ANON_KEY,
+                     Authorization: "Bearer " + SUPABASE_ANON_KEY
+               }
+         }).then(function (r) {
+               if (!r.ok) throw new Error("HTTP " + r.status);
+               return r.json();
+         }).then(function (linhas) {
+               if (!linhas.length || !linhas[0].data) return new Date();
+               var p = String(linhas[0].data).split("-");
+               return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+         });
+   }
+
+   function carregarDados(hoje) {
+         var d0 = iso(hoje);
+         var dOntem = iso(addDias(hoje, -1));
+         var dMesAnt = iso(addMeses(hoje, -1));
+         var dAnoAnt = iso(addAnos(hoje, -1));
+         var segAtual = inicioSemana(hoje);
+         var sIni = iso(segAtual), sFim = d0;
+         var sAntIni = iso(addDias(segAtual, -7)), sAntFim = iso(addDias(segAtual, -1));
+         var sMesIni = iso(addMeses(segAtual, -1)), sMesFim = iso(addMeses(hoje, -1));
+         var sAnoIni = iso(addAnos(segAtual, -1)), sAnoFim = iso(addAnos(hoje, -1));
+         var mIni = iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)), mFim = d0;
+         var mesAntRef = addMeses(hoje, -1);
+         var mAntIni = iso(new Date(mesAntRef.getFullYear(), mesAntRef.getMonth(), 1));
+         var mAntFim = iso(mesAntRef);
+         var anoAntRef = addAnos(hoje, -1);
+         var mAnoIni = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth(), 1));
+         var mAnoFim = iso(anoAntRef);
+
+      Promise.all([
+              buscar(d0, d0), buscar(dOntem, dOntem), buscar(dMesAnt, dMesAnt), buscar(dAnoAnt, dAnoAnt),
+              buscar(sIni, sFim), buscar(sAntIni, sAntFim), buscar(sMesIni, sMesFim), buscar(sAnoIni, sAnoFim),
+              buscar(mIni, mFim), buscar(mAntIni, mAntFim), buscar(mAnoIni, mAnoFim)
+            ]).then(function (r) {
+              var dHoje = r[0], dOnt = r[1], dMes = r[2], dAno = r[3];
+              var wAtual = r[4], wAnt = r[5], wMes = r[6], wAno = r[7];
+              var mAtual = r[8], mAnt = r[9], mAno = r[10];
+              var dataExibida = d0;
+              var usandoUltimoDia = false;
+              if (!dHoje.length && mAtual.length) {
+                    dataExibida = mAtual.reduce(function (max, linha) {
+                          return String(linha.data) > max ? String(linha.data) : max;
+                    }, "");
+                    dHoje = mAtual.filter(function (linha) { return String(linha.data) === dataExibida; });
+                    usandoUltimoDia = true;
+              }
+              var partesDataExibida = dataExibida.split("-");
+              var dataExibidaObj = new Date(Number(partesDataExibida[0]), Number(partesDataExibida[1]) - 1, Number(partesDataExibida[2]));
+              function unidade(chave) {
+                        var fHoje = filtrar(dHoje, chave);
+                        var fSem = filtrar(wAtual, chave);
+                        var fMes = filtrar(mAtual, chave);
+                        return {
+                                    hoje: bloco(fHoje, usandoUltimoDia
+                                          ? "Últimos dados importados - " + fmtBR(dataExibidaObj)
+                                          : "Hoje - " + fmtBR(hoje), {
+                                                  anterior: pct(somaFat(fHoje), somaFat(filtrar(dOnt, chave))),
+                                                  mesAnterior: pct(somaFat(fHoje), somaFat(filtrar(dMes, chave))),
+                                                  anoAnterior: pct(somaFat(fHoje), somaFat(filtrar(dAno, chave)))
+                                    }),
+                                    semana: bloco(fSem, "Semana " + fmtBR(segAtual) + " a " + fmtBR(hoje), {
+                                                  anterior: pct(somaFat(fSem), somaFat(filtrar(wAnt, chave))),
+                                                  mesAnterior: pct(somaFat(fSem), somaFat(filtrar(wMes, chave))),
+                                                  anoAnterior: pct(somaFat(fSem), somaFat(filtrar(wAno, chave)))
+                                    }),
+                                    mes: bloco(fMes, "Mes corrente ate " + fmtBR(hoje), {
+                                                  anterior: pct(somaFat(fMes), somaFat(filtrar(mAnt, chave))),
+                                                  mesAnterior: pct(somaFat(fMes), somaFat(filtrar(mAnt, chave))),
+                                                  anoAnterior: pct(somaFat(fMes), somaFat(filtrar(mAno, chave)))
+                                    }),
+                                    heat: heat(fMes),
+                                    matrix: matriz(fMes)
+                        };
+              }
+
+                          window.DATA = {
+                                    fit: unidade("vila_fit"),
+                                    gourmet: unidade("vila_gourmet"),
+                                    ambas: unidade("ambas")
+                          };
+              var diasDec = hoje.getDate();
+              var diasMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+              function fech(chave) {
+                        return {
+                                    fatAcumulado: somaFat(filtrar(mAtual, chave)),
+                                    diasDecorridos: diasDec,
+                                    diasMes: diasMes,
+                                    dataCorte: fmtBR(hoje),
+                                    fatMesAnterior: somaFat(filtrar(mAnt, chave)) || null,
+                                    fatAnoAnterior: somaFat(filtrar(mAno, chave)),
+                                    anoAnteriorLabel: "mesmo periodo " + (hoje.getFullYear() - 1)
+                        };
+              }
+              window.FECHAMENTO = {
+                        fit: fech("vila_fit"),
+                        gourmet: fech("vila_gourmet"),
+                        ambas: fech("ambas")
+              };
+              var nota = document.getElementById("dataSourceNote");
+              if (nota) {
+                    nota.textContent = usandoUltimoDia
+                          ? "ATENÇÃO: última venda importada em " + fmtBR(dataExibidaObj) + " · dados de hoje ainda não recebidos"
+                          : "DADOS AO VIVO · atualizado em " + new Date().toLocaleString("pt-BR");
+                    nota.style.color = usandoUltimoDia ? "var(--gourmet)" : "";
+              }
+      }).catch(function (e) {
+              console.error("Falha ao carregar dados ao vivo.", e);
+      }).then(function () {
+              if (window.renderAll) window.renderAll();
+      });
+   }
+
+   function iniciarDadosVivos() {
+         buscarUltimaData().then(carregarDados).catch(function (e) {
+               console.error("Falha ao localizar a data mais recente.", e);
+               carregarDados(new Date());
+         });
+   }
+
+   window.iniciarDadosVivos = iniciarDadosVivos;
+})();
+
+</script>
+<script>
+// Projeção de fechamento do mês (regra de três: faturamento acumulado ÷ dias
+// decorridos × dias do mês). Baseado no mês calendário corrente (agosto/2026).
+// dataCorte reflete até onde o dado real chega — atualiza sozinho quando a
+// extração automática estiver rodando dia a dia.
+var FECHAMENTO = {
+  fit:     { fatAcumulado:345108.38, diasDecorridos:24, diasMes:31, dataCorte:'24/08/2026',
+             fatMesAnterior:null, fatAnoAnterior:303814.50, anoAnteriorLabel:'AGO/2025' },
+  gourmet: { fatAcumulado:42424.74,  diasDecorridos:24, diasMes:31, dataCorte:'24/08/2026',
+             fatMesAnterior:null, fatAnoAnterior:69912.58, anoAnteriorLabel:'AGO/2025' },
+  ambas:   { fatAcumulado:387533.12, diasDecorridos:24, diasMes:31, dataCorte:'24/08/2026',
+             fatMesAnterior:null, fatAnoAnterior:373727.08, anoAnteriorLabel:'AGO/2025' }
+};
+
+var DATA = {
+  fit: {
+    hoje:   { fat:1333.86,  deltaFat:null,  itT:1.21, itMeta:1.80, tk:16.27, cmv:null, cmvMeta:35, proj:null, projMeta:195000,
+      periodo:'24/08/2026 (parcial até 10h43)',
+      horas:[0,1,21,44,16,0,0,0,0,0,0,0,0,0,0,0],
+      top:[["Agua Crystal Com Gas",9],["Agua Crystal Sem Gas",9],["Cafe Coado S/ Acucar",7],["Self Cafe Da Manha",5],
+           ["Cappuccino",4],["Balas Diversas",4],["Donuts Chocolate",3],["Budweiser 350ml",3],
+           ["Salada Tropical",3],["Suco Laranja 500ml",3]],
+      bottom:[["Picole La Fruta Limao",1],["Powerade Frutas Tropicais 500ml",1],["Trident X Senses Cereja Ice",1],
+           ["Salada de Fruta",1],["Suco Maguary Uva",1],["Sprite Lemon Fresh",1],
+           ["Yo Pro 15g Cappuccino 250ml",1],["Trident Canela",1],["Açaí Kg",1],["Self Almoço",0]] },
+    semana: { fat:107852.41, deltaFat:-7.8, itT:1.60, itMeta:1.80, tk:19.86, cmv:null, cmvMeta:35, proj:null, projMeta:195000,
+      periodo:'17/08 – 23/08/2026 (seg–dom)', deltaMesAnt:-59.8, deltaAnoAnt:50.5,
+      horas:[0,4,251,304,334,341,356,408,323,389,511,578,700,518,313,100],
+      top:[["Espetinho Frango Empanado",411],["Agua Crystal Sem Gas",258],["Balas Diversas",241],["Pastel de Queijo",200],
+           ["Cafe Coado S/ Acucar",172],["Agua Crystal Com Gas",151],["Coca Zero 310ml",127],["Torta de Frango",117],
+           ["Cookies Tradicional",112],["Pastel de Carne",110]],
+      bottom:[["Super Bar Banoffee 45g",1],["Talento Amêndoas e Passas 85g",1],["Active Alfajor Tamara 50g",1],
+           ["Talento Doce de Leite 85g",1],["Tap/Crep Cremosa",1],["Tap/Crep Frango Mucarela Banana Canela",1],
+           ["1/2 Panini Frango",1],["Top Way Protein Alfajor Salted Caramel",1],["Yopro Morango 15g 250ml",1],["Iogurte Kg",1]] },
+    mes:    { fat:531037.79, deltaFat:null, itT:1.75, itMeta:1.80, tk:22.12, cmv:null, cmvMeta:35, proj:null, projMeta:245000,
+      periodo:'25/07 – 24/08/2026',
+      horas:[0,140,1045,1306,1414,1626,1754,1844,1596,1936,2455,2663,2712,1858,1220,440],
+      top:[["Espetinho Frango Empanado",1697],["Agua Crystal Sem Gas",1398],["Cafe Coado S/ Acucar",992],["Balas Diversas",968],
+           ["Pastel de Queijo",962],["Agua Crystal Com Gas",879],["Self Almoço",775],["Coca Zero 310ml",687],
+           ["Torta de Frango",545],["Pastel de Carne",504]],
+      bottom:[["Talento Artesão 75g",1],["Alpino 280ml",1],["Wrap de Carne com Cream Cheese",1],
+           ["White Horse",1],["Vitamina de Banana 300ml",1],["Vitamina de Banana 500ml",1],
+           ["Barrinha VO2 Cookies Whey Bar 30g",1],["Wrap de Frango com Cream Cheese",1],["1/2 Panini ao Pesto",1],["1/2 Buffet de Salada",1]] },
+    heat:{ rows:["Manhã (6-10h)","Almoço (11-14h)","Tarde (15-17h)","Noite (18-21h)"],
+      cols:["SEG","TER","QUA","QUI","SEX","SÁB","DOM"],
+      values:[[24,21,20,22,17,48,30],[27,25,24,28,29,100,85],[39,42,37,39,39,75,57],[46,46,45,48,45,50,11]] },
+    matrix:{ stars:["Espetinho Frango Empanado","Self Almoço"], plow:["Pastel de Queijo","Agua Crystal Sem Gas"],
+      puzzle:["Torta de Frango","Café Coado S/ Açúcar"], dogs:["Wrap de Carne com Cream Cheese","Vitamina de Banana 300ml"] }
+  },
+  gourmet: {
+    hoje:   { fat:86.90, deltaFat:null, itT:4.00, itMeta:2.20, tk:86.90, cmv:null, cmvMeta:35, proj:null, projMeta:250000,
+      periodo:'24/08/2026 (parcial até 10h43)',
+      horas:[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+      top:[["Coca-Cola Zero",1],["Filé de Frango",1],["Segunda",1],["Suco de Laranja 300ml",1]],
+      bottom:[["Coca-Cola Zero",1],["Filé de Frango",1],["Segunda",1],["Suco de Laranja 300ml",1]] },
+    semana: { fat:11880.07, deltaFat:-20.2, itT:1.74, itMeta:2.20, tk:34.64, cmv:null, cmvMeta:35, proj:null, projMeta:250000,
+      periodo:'17/08 – 23/08/2026 (seg–dom)', deltaMesAnt:-73.5, deltaAnoAnt:-35.3,
+      horas:[0,0,0,0,7,28,70,58,38,19,18,16,30,33,26,0],
+      top:[["Pão com Pernil",78],["Buffet Massas",64],["Chop Caneca 360ml",51],["Kids Bovino",19],
+           ["Power Tilápia",19],["Pastel Misto Und",18],["Filé de Frango",17],["Coca-Cola Zero",17],
+           ["Coca-Cola",17],["Coca Zero 310ml",16]],
+      bottom:[["Pastel de Frango",1],["Picles",1],["Sprite 310ml",1],["Prato Bife à Cavalo",1],
+           ["Soda Italiana Maçã",1],["Quarta",1],["Vodka Nacional",1],["Torresmo",1],
+           ["White Horse",1],["Pastel Kg",1]] },
+    mes:    { fat:71180.54, deltaFat:null, itT:1.76, itMeta:2.20, tk:37.88, cmv:null, cmvMeta:35, proj:null, projMeta:315000,
+      periodo:'25/07 – 24/08/2026',
+      horas:[0,0,0,1,15,165,372,310,203,144,99,107,130,184,144,5],
+      top:[["Buffet Massas",550],["Pão com Pernil",310],["Chop Caneca 360ml",245],["Coca-Cola Zero",164],
+           ["Pastel Misto Und",132],["Coca-Cola",124],["Chop Happy Hour Caneca 360ml",72],["Filé de Frango",70],
+           ["Chopp Brahma 300ml",70],["Embalagem para Viagem",53]],
+      bottom:[["Piña Colada",1],["Soda Italiana Abacaxi",1],["Sprite 310ml",1],["Vodka Abacaxi",1],
+           ["Tomate",1],["Vinagrete",1],["Vodka Maracujá",1],["Vodka Manga",1],
+           ["Vodka Nacional",1],["White Horse",1]] },
+    heat:{ rows:["Manhã (6-10h)","Almoço (11-14h)","Tarde (15-17h)","Noite (18-21h)"],
+      cols:["SEG","TER","QUA","QUI","SEX","SÁB","DOM"],
+      values:[[0,0,0,0,1,1,4],[37,50,40,30,43,91,100],[12,15,17,10,17,32,26],[20,30,23,29,27,42,1]] },
+    matrix:{ stars:["Buffet Massas","Pão com Pernil"], plow:["Chop Caneca 360ml","Coca-Cola Zero"],
+      puzzle:["Chop Happy Hour Caneca 360ml","Filé de Frango"], dogs:["Vodka Nacional","White Horse"] }
+  },
+  ambas: {
+    hoje:   { fat:1420.76, deltaFat:null, itT:1.24, itMeta:2.00, tk:17.12, cmv:null, cmvMeta:35, proj:null, projMeta:445000,
+      periodo:'24/08/2026 (parcial até 10h43)',
+      horas:[0,1,21,44,16,1,0,0,0,0,0,0,0,0,0,0],
+      top:[["Agua Crystal Com Gas",9],["Agua Crystal Sem Gas",9],["Cafe Coado S/ Acucar",7],["Self Cafe Da Manha",5],
+           ["Cappuccino",4],["Balas Diversas",4],["Donuts Chocolate",3],["Budweiser 350ml",3],
+           ["Salada Tropical",3],["Suco Laranja 500ml",3]],
+      bottom:[["Redbull Tradicional 250ml",1],["Powerade Laranja 500ml",1],["Trident X Senses Cereja Ice",1],
+           ["Sprite Lemon Fresh",1],["Suco Maguary Uva",1],["Suco Laranja 300ml",1],
+           ["Yo Pro 15g Cappuccino 250ml",1],["Trident Canela",1],["Açaí Kg",1],["Self Almoço",0]] },
+    semana: { fat:119732.48, deltaFat:-9.2, itT:1.61, itMeta:2.00, tk:20.74, cmv:null, cmvMeta:35, proj:null, projMeta:445000,
+      periodo:'17/08 – 23/08/2026 (seg–dom)', deltaMesAnt:-61.8, deltaAnoAnt:33.0,
+      horas:[0,4,251,304,341,369,426,466,361,408,529,594,730,551,339,100],
+      top:[["Espetinho Frango Empanado",411],["Agua Crystal Sem Gas",263],["Balas Diversas",241],["Pastel de Queijo",209],
+           ["Cafe Coado S/ Acucar",172],["Agua Crystal Com Gas",152],["Coca Zero 310ml",143],["Torta de Frango",117],
+           ["Pastel de Carne",113],["Cookies Tradicional",112]],
+      bottom:[["Barrinha VO2 Cookies Whey Bar 30g",1],["Bis Original 16und",1],["1/2 Panini Frango",1],
+           ["Tap/Crep Cremosa",1],["Tap/Crep Frango Mucarela Banana Canela",1],["Top Way 100 Whey Chocolate Avelã",1],
+           ["Yopro Morango 15g 250ml",1],["Torresmo",1],["Iogurte Kg",1],["Super Bar Banoffee 45g",1]] },
+    mes:    { fat:602218.33, deltaFat:null, itT:1.75, itMeta:2.00, tk:23.26, cmv:null, cmvMeta:35, proj:null, projMeta:560000,
+      periodo:'25/07 – 24/08/2026',
+      horas:[0,140,1045,1307,1429,1791,2126,2154,1799,2080,2554,2770,2842,2042,1364,445],
+      top:[["Espetinho Frango Empanado",1697],["Agua Crystal Sem Gas",1429],["Cafe Coado S/ Acucar",992],["Pastel de Queijo",989],
+           ["Balas Diversas",968],["Agua Crystal Com Gas",896],["Buffet Massas",803],["Self Almoço",775],
+           ["Coca Zero 310ml",729],["Torta de Frango",545]],
+      bottom:[["Tap/Crep Frango Mucarela Banana Canela",1],["Tap/Crep Peito de Peru c/ Mucarela",1],["Tomate",1],
+           ["Timbers Avelã 27g",1],["Tapioca de Frango",1],["Tapioca Cremosa",1],
+           ["Açaí Bowl 500ml",1],["Alfajor Doce de Leite Peanut 55g",1],["1/2 Panini ao Pesto",1],["1/2 Buffet de Salada",1]] },
+    heat:{ rows:["Manhã (6-10h)","Almoço (11-14h)","Tarde (15-17h)","Noite (18-21h)"],
+      cols:["SEG","TER","QUA","QUI","SEX","SÁB","DOM"],
+      values:[[21,19,18,19,16,43,28],[28,28,26,28,31,100,87],[37,40,35,37,37,71,54],[43,45,43,47,43,49,10]] },
+    matrix:{ stars:["Espetinho Frango Empanado","Buffet Massas"], plow:["Self Almoço","Pastel de Queijo"],
+      puzzle:["Café Coado S/ Açúcar","Torta de Frango"], dogs:["Açaí Bowl 500ml","1/2 Buffet de Salada"] }
+  }
+};
+
+const HOURS = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21];
+const fmtR = v => 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits: v%1!==0?2:0, maximumFractionDigits:2});
+const fmtInt = v => v.toLocaleString('pt-BR');
+const unitLabel = u => u==='fit' ? 'VILA FIT' : u==='gourmet' ? 'VILA GOURMET' : 'VILA FIT + GOURMET';
+
+let state = { unit:'fit', period:'hoje' };
+
+function renderKPIs(){
+  const d = DATA[state.unit][state.period];
+  const rotulo = state.period==='hoje' ? 'dia'
+               : state.period==='semana' ? 'semana'
+               : 'periodo';
+  const rotuloAnterior = state.period==='hoje' ? 'dia anterior'
+                       : state.period==='semana' ? 'semana anterior'
+                       : 'mes anterior';
+
+  const faturamentoDelta = (d.deltaFat===null || d.deltaFat===undefined) ? null : d.deltaFat;
+  const faturamentoLabel = (d.deltaFat===null || d.deltaFat===undefined)
+    ? 'sem dado do '+rotuloAnterior+' para comparar'
+    : (d.deltaFat>=0?'+':'')+d.deltaFat.toFixed(1)+'% vs '+rotuloAnterior;
+
+  const extraCompares = [];
+  if(d.deltaMesAnt===null || d.deltaMesAnt===undefined){
+    extraCompares.push({ up:null, text:'sem dado do mesmo '+rotulo+' do mes anterior' });
+  } else {
+    extraCompares.push({ up: d.deltaMesAnt>=0, text: (d.deltaMesAnt>=0?'+':'')+d.deltaMesAnt.toFixed(1)+'% vs mesmo '+rotulo+' do mes anterior' });
+  }
+  if(d.deltaAnoAnt===null || d.deltaAnoAnt===undefined){
+    extraCompares.push({ up:null, text:'sem dado do mesmo '+rotulo+' do ano anterior' });
+  } else {
+    extraCompares.push({ up: d.deltaAnoAnt>=0, text: (d.deltaAnoAnt>=0?'+':'')+d.deltaAnoAnt.toFixed(1)+'% vs mesmo '+rotulo+' do ano anterior' });
+  }
+  const kpis = [
+    { label:'Faturamento', value: fmtR(d.fat), delta: faturamentoDelta, deltaLabel: faturamentoLabel, extra: extraCompares },
+    { label:'Itens por ticket', value: d.itT.toFixed(2).replace('.',','), delta: d.itT-d.itMeta, deltaLabel: 'meta '+d.itMeta.toFixed(2).replace('.',',') },
+    { label:'Ticket médio', value: fmtR(d.tk), delta: null, deltaLabel: 'por venda' },
+    d.cmv===null
+      ? { label:'CMV %', value: '—', delta: null, deltaLabel: 'exige dado de custo (não vem no relatório de vendas)' }
+      : { label:'CMV %', value: d.cmv.toFixed(1).replace('.',',')+'%', delta: d.cmvMeta-d.cmv, deltaLabel: 'meta '+d.cmvMeta+'%' },
+    d.proj===null
+      ? { label:'Projeção do mês', value: '—', delta: null, deltaLabel: 'ativa quando o período cobrir o mês corrente' }
+      : { label:'Projeção do mês', value: fmtR(d.proj), delta: d.proj-d.projMeta, deltaLabel: 'meta '+fmtR(d.projMeta) },
+  ];
+  const row = document.getElementById('kpiRow');
+  row.innerHTML = kpis.map(k=>{
+    let deltaHtml = '';
+    if(k.delta !== null){
+      const up = k.delta >= 0;
+      deltaHtml = `<span class="delta ${up?'up':'down'}">${up?'▲':'▼'} ${k.deltaLabel}</span>`;
+    } else {
+      deltaHtml = `<span class="ticket-ref">${k.deltaLabel}</span>`;
+    }
+    let extraHtml = '';
+    if(k.extra && k.extra.length){
+      extraHtml = k.extra.map(e=>{
+        if(e.up===null){
+          return `<div class="ticket-meta" style="margin-top:3px">
+            <span class="ticket-ref">${e.text}</span>
+          </div>`;
+        }
+        return `<div class="ticket-meta" style="margin-top:3px">
+          <span class="delta ${e.up?'up':'down'}">${e.up?'+':'-'} ${e.text}</span>
+        </div>`;
+      }).join('');
+    }
+    return `<div class="ticket">
+      <div class="ticket-label">${k.label}</div>
+      <div class="ticket-value num">${k.value}</div>
+      <div class="ticket-perf"></div>
+      <div class="ticket-meta">${deltaHtml}</div>
+      ${extraHtml}
+    </div>`;
+  }).join('');
+  const rangeEl = document.getElementById('periodRange');
+  if(d.periodo) rangeEl.textContent = 'Período exibido: ' + d.periodo;
+  else rangeEl.textContent = '';
+}
+
+function renderChart(){
+  const d = DATA[state.unit][state.period];
+  const max = Math.max(...d.horas);
+  const chart = document.getElementById('horasChart');
+  const axis = document.getElementById('horasAxis');
+  chart.innerHTML = d.horas.map(v=>{
+    const h = Math.max(4, Math.round((v/max)*130));
+    return `<div class="bar-col"><div class="bar" data-unit="${state.unit}" style="height:${h}px" title="${v}"></div></div>`;
+  }).join('');
+  axis.innerHTML = HOURS.map(h=>`<div class="axis-col">${h}h</div>`).join('');
+  const peakIdx = d.horas.indexOf(max);
+  const min = Math.min(...d.horas);
+  const lowIdx = d.horas.indexOf(min);
+  document.getElementById('peakNote').innerHTML =
+    `Pico de fluxo: <b>${HOURS[peakIdx]}h</b> (${max} vendas) · Menor fluxo: <b>${HOURS[lowIdx]}h</b> (${min} vendas)`;
+  document.getElementById('chartTag').textContent = unitLabel(state.unit);
+  document.getElementById('chartTag').className = 'panel-tag ' + state.unit;
+}
+
+function heatColor(v, unit){
+  const base = unit==='fit' ? [127,176,105] : unit==='gourmet' ? [228,167,60] : [91,138,166];
+  const alpha = 0.18 + (v/100)*0.82;
+  return `rgba(${base[0]},${base[1]},${base[2]},${alpha.toFixed(2)})`;
+}
+
+function renderHeatmap(){
+  const h = DATA[state.unit].heat;
+  const grid = document.getElementById('heatmap');
+  let html = `<div class="hm-corner"></div>` + h.cols.map(c=>`<div class="hm-head">${c}</div>`).join('');
+  h.rows.forEach((r,ri)=>{
+    html += `<div class="hm-row-label">${r}</div>`;
+    h.values[ri].forEach(v=>{
+      html += `<div class="hm-cell" style="background:${heatColor(v,state.unit)}">${v}</div>`;
+    });
+  });
+  grid.innerHTML = html;
+  document.getElementById('heatTag').textContent = unitLabel(state.unit);
+  document.getElementById('heatTag').className = 'panel-tag ' + state.unit;
+}
+
+function renderRankings(){
+  const d = DATA[state.unit][state.period];
+  const maxTop = d.top.length ? (Number(d.top[0][1]) || 1) : 1;
+  const maxBottom = d.bottom.length ? (Number(d.bottom[d.bottom.length-1][1]) || 1) : 1;
+  document.getElementById('topList').innerHTML = d.top.map((it,i)=>`
+    <li class="rank-item">
+      <span class="rank-idx num">${i+1}</span>
+      <span class="rank-name">${it[0]}</span>
+      <span class="rank-bar-wrap"><span class="rank-bar" style="width:${(it[1]/maxTop*100).toFixed(0)}%"></span></span>
+      <span class="rank-qty num">${fmtInt(it[1])}</span>
+    </li>`).join('');
+  document.getElementById('bottomList').innerHTML = d.bottom.map((it,i)=>`
+    <li class="rank-item">
+      <span class="rank-idx num">${i+1}</span>
+      <span class="rank-name">${it[0]}</span>
+      <span class="rank-bar-wrap"><span class="rank-bar" style="width:${(it[1]/maxBottom*60).toFixed(0)}%"></span></span>
+      <span class="rank-qty num">${fmtInt(it[1])}</span>
+    </li>`).join('');
+}
+
+function renderMatrix(){
+  const m = DATA[state.unit].matrix;
+  const grid = document.getElementById('matrixGrid');
+  grid.innerHTML = `
+    <div class="quad puzzle">
+      <div class="quad-title">PUZZLES</div>
+      <div class="quad-def">Baixa popularidade · alta margem</div>
+      <div class="quad-items">${m.puzzle.join('<br>')}</div>
+    </div>
+    <div class="quad stars">
+      <div class="quad-title">ESTRELAS</div>
+      <div class="quad-def">Alta popularidade · alta margem</div>
+      <div class="quad-items">${m.stars.join('<br>')}</div>
+    </div>
+    <div class="quad dogs">
+      <div class="quad-title">DOGS</div>
+      <div class="quad-def">Baixa popularidade · baixa margem</div>
+      <div class="quad-items">${m.dogs.join('<br>')}</div>
+    </div>
+    <div class="quad plow">
+      <div class="quad-title">CAVALOS DE BATALHA</div>
+      <div class="quad-def">Alta popularidade · baixa margem</div>
+      <div class="quad-items">${m.plow.join('<br>')}</div>
+    </div>`;
+}
+
+function renderCompare(){
+  const f = DATA.fit.hoje, g = DATA.gourmet.hoje;
+  const rows = [
+    { label:'Faturamento', fv:f.fat, gv:g.fat, fmt:fmtR },
+    { label:'Ticket médio', fv:f.tk, gv:g.tk, fmt:fmtR },
+    { label:'Itens/ticket', fv:f.itT, gv:g.itT, fmt:v=>v.toFixed(2).replace('.',',') },
+    { label:'CMV %', fv:f.cmv, gv:g.cmv, fmt:v=>v.toFixed(1).replace('.',',')+'%' },
+  ];
+  const isNumber = v => typeof v === 'number' && Number.isFinite(v);
+  const maxes = rows.map(r=>Math.max(isNumber(r.fv)?r.fv:0, isNumber(r.gv)?r.gv:0));
+  const valueText = (r,v) => isNumber(v) ? r.fmt(v) : '—';
+  const barWidth = (v,max) => (isNumber(v) && max>0) ? (v/max*100).toFixed(0) : '0';
+  document.getElementById('compareRows').innerHTML = rows.map((r,i)=>`
+    <div class="compare-row">
+      <div class="compare-val num" style="text-align:right;color:var(--fit)">${valueText(r,r.fv)}</div>
+      <div class="compare-track left">
+        <div class="compare-fill-wrap left"><div class="compare-fill fit" style="width:${barWidth(r.fv,maxes[i])}%"></div></div>
+      </div>
+      <div style="display:none"></div>
+    </div>`).join('') +
+    rows.map((r,i)=>'').join(''); // placeholder removed below
+  // Build properly with label centered
+  document.getElementById('compareRows').innerHTML = rows.map((r,i)=>`
+    <div class="compare-row">
+      <div class="compare-val num" style="text-align:right;color:var(--fit)">${valueText(r,r.fv)}</div>
+      <div class="compare-fill-wrap left"><div class="compare-fill fit" style="width:${barWidth(r.fv,maxes[i])}%"></div></div>
+      <div class="compare-fill-wrap"><div class="compare-fill gourmet" style="width:${barWidth(r.gv,maxes[i])}%"></div></div>
+    </div>
+    <div class="compare-row" style="grid-template-columns:1fr;margin-top:-10px;margin-bottom:2px">
+      <div class="compare-label" style="text-align:center">${r.label}</div>
+    </div>`).join('');
+}
+
+function renderActions(){
+  const actions = [
+    { tag:'urgente', text:'CMV da <b>Vila Gourmet</b> em 38,9% no mês — 3,9pp acima da meta. Revisar custo de <b>Batata Frita Grande</b> e <b>Combo Lanche+Refri</b>.' },
+    { tag:'atencao', text:'Fluxo baixo às <b>15h–17h</b> em ambas as unidades. Avaliar redução de equipe no turno ou promoção "Tarde Fit" para reativar demanda.' },
+    { tag:'oportunidade', text:'<b>Salada de Grão-de-Bico</b> (Vila Fit) e <b>Salada Funcional</b> (Vila Gourmet) são "Dogs" há semanas — avaliar remoção ou reformulação do prato.' },
+    { tag:'oportunidade', text:'Itens/ticket geral abaixo da meta (1,58 de 1,80 na Vila Fit). Treinar caixa para sugerir itens "Puzzle" — alta margem, baixa saída — no fechamento da venda.' },
+    { tag:'atencao', text:'Pico de terça-feira no almoço concentra o maior volume da semana em ambas as unidades — validar escala de cozinha e caixa nesse horário.' },
+  ];
+  document.getElementById('actionsList').innerHTML = actions.map(a=>`
+    <li class="action-item">
+      <span class="action-tag ${a.tag}">${a.tag.toUpperCase()}</span>
+      <span class="action-text">${a.text}</span>
+    </li>`).join('');
+}
+
+function renderRunrate(){
+  const f = FECHAMENTO[state.unit];
+  const projecao = (f.fatAcumulado / f.diasDecorridos) * f.diasMes;
+  document.getElementById('runrateValue').textContent = fmtR(projecao);
+  document.getElementById('runrateBasis').textContent =
+    `com base em ${fmtR(f.fatAcumulado)} até ${f.dataCorte} (${f.diasDecorridos}/${f.diasMes} dias)`;
+
+  const linhas = [];
+  // Mês anterior (julho/2026) — ainda não extraído o fechamento completo
+  if(f.fatMesAnterior){
+    linhas.push(`<div class="line">JUL/2026: <b>${fmtR(f.fatMesAnterior)}</b></div>`);
+  } else {
+    linhas.push(`<div class="line pending">JUL/2026 — mês fechado ainda não extraído</div>`);
+  }
+  // Mesmo mês, ano anterior — agora com o mês FECHADO completo
+  linhas.push(`<div class="line">${f.anoAnteriorLabel}: <b>${fmtR(f.fatAnoAnterior)}</b></div>`);
+  linhas.push(`<div class="line" style="margin-top:2px">AGO/2026 (projeção de fechamento): <b>${fmtR(projecao)}</b></div>`);
+  document.getElementById('runrateCompare').innerHTML = linhas.join('');
+}
+
+function renderAll(){
+  renderKPIs(); renderChart(); renderHeatmap(); renderRankings(); renderMatrix(); renderCompare(); renderActions(); renderRunrate();
+}
+
+document.querySelectorAll('.unit-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.unit-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.unit = btn.dataset.unit;
+    renderKPIs(); renderChart(); renderHeatmap(); renderRankings(); renderMatrix(); renderRunrate();
+  });
+});
+document.querySelectorAll('.period-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.period = btn.dataset.period;
+    renderKPIs(); renderChart(); renderRankings();
+  });
+});
+
+const themeBtn = document.getElementById('themeToggle');
+themeBtn.addEventListener('click', ()=>{
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  if(isLight){
+    document.documentElement.removeAttribute('data-theme');
+    themeBtn.textContent = '☀';
+    themeBtn.title = 'Alternar fundo claro/escuro';
+  } else {
+    document.documentElement.setAttribute('data-theme','light');
+    themeBtn.textContent = '☾';
+    themeBtn.title = 'Alternar fundo claro/escuro';
+  }
+});
+
+renderAll();
+if (typeof iniciarDadosVivos === 'function') iniciarDadosVivos();
+</script>
+</body>
+</html>
