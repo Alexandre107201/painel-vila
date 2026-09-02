@@ -78,6 +78,7 @@
   .unit-btn.active[data-unit="ambas"]{background:var(--ambas);color:#0d1a20;}
   .period-btn.active{background:var(--surface-2);color:var(--text);}
   .unit-btn:hover:not(.active),.period-btn:hover:not(.active){color:var(--text);}
+  .period-btn:disabled{opacity:.45;cursor:wait;}
   .theme-toggle{
     width:36px;height:36px;border-radius:10px;background:var(--surface);border:1px solid var(--border);
     color:var(--text-2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -88,7 +89,7 @@
 
   /* ---------- RUNRATE CARD (canto superior direito) ---------- */
   .runrate-card{
-    position:absolute;top:0;right:24px;width:290px;
+    position:relative;width:290px;margin:0 0 24px auto;
     background:var(--surface);border:1px solid var(--border);border-radius:12px;
     padding:14px 16px;text-align:right;
   }
@@ -102,7 +103,7 @@
   .runrate-compare .down{color:var(--bad);}
   .runrate-compare .pending{color:var(--text-3);font-style:italic;}
   @media (max-width:900px){
-    .runrate-card{position:static;width:auto;text-align:left;margin-bottom:16px;}
+    .runrate-card{width:auto;text-align:left;margin-bottom:16px;}
   }
 
   /* ---------- KPI TICKETS ---------- */
@@ -263,7 +264,8 @@
       </div>
       <div class="period-toggle">
         <button class="period-btn active" data-period="hoje">Hoje</button>
-        <button class="period-btn" data-period="semana">Semana (seg–dom)</button>
+        <button class="period-btn" data-period="semana">Semana atual</button>
+        <button class="period-btn" data-period="semana_anterior" disabled title="Carregando a última semana completa">Semana anterior</button>
         <button class="period-btn" data-period="mes">Setembro/2026</button>
         <button class="period-btn" data-period="agosto">Agosto/2026</button>
       </div>
@@ -340,7 +342,7 @@
     <ul class="actions-list" id="actionsList"></ul>
   </div>
 
-  <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Vila Fit = caixas 001-003/010/009/004; Vila Gourmet = caixas 005-008 (mesma unidade desde a fusão de abril/2026) — corrigido para não contar as vendas do Gourmet dentro do Fit. Padrão de semana: segunda a domingo (mostrando a última completa, 17–23/08; a semana corrente só começou hoje). Na Semana, "vs período anterior" compara com 10–16/08; "vs mesma semana do mês anterior" compara com 20–26/07/2026; "vs mesma semana do ano anterior" compara com 18–24/08/2025 (Gourmet operava como unidade própria "0001" nessa época). CMV e Projeção ficam em branco pois este relatório não traz custo por produto.</div>
+  <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Vila Fit = caixas 001-003/010/009/004; Vila Gourmet = caixas 005-008. Semana atual mostra de segunda-feira até a última data importada; Semana anterior mostra a última semana completa, de segunda a domingo. CMV permanece indisponível porque este relatório não traz custo por produto.</div>
 </div>
 
 <script>
@@ -517,6 +519,8 @@
          var tb = topBottom(linhas);
          k.periodo = periodo;
          k.horas = horas(linhas);
+         k.heat = heat(linhas);
+         k.matrix = matriz(linhas);
          k.top = tb.top;
          k.bottom = tb.bottom;
          k.deltaFat = comp.anterior;
@@ -552,8 +556,13 @@
          var segAtual = inicioSemana(hoje);
          var sIni = iso(segAtual), sFim = d0;
          var sAntIni = iso(addDias(segAtual, -7)), sAntFim = iso(addDias(segAtual, -1));
+         var sAntAntIni = iso(addDias(segAtual, -14)), sAntAntFim = iso(addDias(segAtual, -8));
          var sMesIni = iso(addMeses(segAtual, -1)), sMesFim = iso(addMeses(hoje, -1));
          var sAnoIni = iso(addAnos(segAtual, -1)), sAnoFim = iso(addAnos(hoje, -1));
+         var segAnterior = addDias(segAtual, -7);
+         var domAnterior = addDias(segAtual, -1);
+         var sAntMesIni = iso(addMeses(segAnterior, -1)), sAntMesFim = iso(addMeses(domAnterior, -1));
+         var sAntAnoIni = iso(addAnos(segAnterior, -1)), sAntAnoFim = iso(addAnos(domAnterior, -1));
          var mIni = iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)), mFim = d0;
          var mesAntRef = addMeses(hoje, -1);
          var mAntIni = iso(new Date(mesAntRef.getFullYear(), mesAntRef.getMonth(), 1));
@@ -565,11 +574,13 @@
       Promise.all([
               buscar(d0, d0), buscar(dOntem, dOntem), buscar(dMesAnt, dMesAnt), buscar(dAnoAnt, dAnoAnt),
               buscar(sIni, sFim), buscar(sAntIni, sAntFim), buscar(sMesIni, sMesFim), buscar(sAnoIni, sAnoFim),
-              buscar(mIni, mFim), buscar(mAntIni, mAntFim), buscar(mAnoIni, mAnoFim)
+              buscar(mIni, mFim), buscar(mAntIni, mAntFim), buscar(mAnoIni, mAnoFim),
+              buscar(sAntAntIni, sAntAntFim), buscar(sAntMesIni, sAntMesFim), buscar(sAntAnoIni, sAntAnoFim)
             ]).then(function (r) {
               var dHoje = r[0], dOnt = r[1], dMes = r[2], dAno = r[3];
               var wAtual = r[4], wAnt = r[5], wMes = r[6], wAno = r[7];
               var mAtual = r[8], mAnt = r[9], mAno = r[10];
+              var wAntAnt = r[11], wAntMes = r[12], wAntAno = r[13];
               var dataExibida = d0;
               var usandoUltimoDia = false;
               if (!dHoje.length && mAtual.length) {
@@ -581,10 +592,13 @@
               }
               var partesDataExibida = dataExibida.split("-");
               var dataExibidaObj = new Date(Number(partesDataExibida[0]), Number(partesDataExibida[1]) - 1, Number(partesDataExibida[2]));
+              var dadosAnteriores = window.DATA || {};
               function unidade(chave) {
                         var fHoje = filtrar(dHoje, chave);
                         var fSem = filtrar(wAtual, chave);
                         var fMes = filtrar(mAtual, chave);
+                        var chaveTela = chave === "vila_fit" ? "fit" : chave === "vila_gourmet" ? "gourmet" : "ambas";
+                        var anterior = dadosAnteriores[chaveTela] || {};
                         return {
                                     hoje: bloco(fHoje, usandoUltimoDia
                                           ? "Últimos dados importados - " + fmtBR(dataExibidaObj)
@@ -598,13 +612,21 @@
                                                   mesAnterior: pct(somaFat(fSem), somaFat(filtrar(wMes, chave))),
                                                   anoAnterior: pct(somaFat(fSem), somaFat(filtrar(wAno, chave)))
                                     }),
+                                    semana_anterior: bloco(filtrar(wAnt, chave), "Semana completa " + fmtBR(segAnterior) + " a " + fmtBR(domAnterior), {
+                                                  anterior: pct(somaFat(filtrar(wAnt, chave)), somaFat(filtrar(wAntAnt, chave))),
+                                                  mesAnterior: pct(somaFat(filtrar(wAnt, chave)), somaFat(filtrar(wAntMes, chave))),
+                                                  anoAnterior: pct(somaFat(filtrar(wAnt, chave)), somaFat(filtrar(wAntAno, chave)))
+                                    }),
                                     mes: bloco(fMes, "Mes corrente ate " + fmtBR(hoje), {
                                                   anterior: pct(somaFat(fMes), somaFat(filtrar(mAnt, chave))),
                                                   mesAnterior: pct(somaFat(fMes), somaFat(filtrar(mAnt, chave))),
                                                   anoAnterior: pct(somaFat(fMes), somaFat(filtrar(mAno, chave)))
                                     }),
+                                    agosto: anterior.agosto,
                                     heat: heat(fMes),
-                                    matrix: matriz(fMes)
+                                    matrix: matriz(fMes),
+                                    heatAgosto: anterior.heatAgosto,
+                                    matrixAgosto: anterior.matrixAgosto
                         };
               }
 
@@ -631,6 +653,10 @@
                         gourmet: fech("vila_gourmet"),
                         ambas: fech("ambas")
               };
+              document.querySelectorAll('[data-period="semana_anterior"]').forEach(function (btn) {
+                    btn.disabled = false;
+                    btn.title = "Última semana completa (seg–dom)";
+              });
               var nota = document.getElementById("dataSourceNote");
               if (nota) {
                     nota.textContent = usandoUltimoDia
@@ -781,10 +807,10 @@ let state = { unit:'fit', period:'hoje' };
 function renderKPIs(){
   const d = DATA[state.unit][state.period];
   const rotulo = state.period==='hoje' ? 'dia'
-               : state.period==='semana' ? 'semana'
+               : (state.period==='semana' || state.period==='semana_anterior') ? 'semana'
                : 'periodo';
   const rotuloAnterior = state.period==='hoje' ? 'dia anterior'
-                       : state.period==='semana' ? 'semana anterior'
+                       : (state.period==='semana' || state.period==='semana_anterior') ? 'semana anterior'
                        : 'mes anterior';
 
   const faturamentoDelta = (d.deltaFat===null || d.deltaFat===undefined) ? null : d.deltaFat;
@@ -851,7 +877,7 @@ function renderKPIs(){
 
 function renderChart(){
   const d = DATA[state.unit][state.period];
-  const max = Math.max(...d.horas);
+  const max = Math.max(...d.horas) || 1;
   const chart = document.getElementById('horasChart');
   const axis = document.getElementById('horasAxis');
   chart.innerHTML = d.horas.map(v=>{
@@ -875,7 +901,8 @@ function heatColor(v, unit){
 }
 
 function renderHeatmap(){
-  const h = state.period==='agosto' ? DATA[state.unit].heatAgosto : DATA[state.unit].heat;
+  const d = DATA[state.unit][state.period];
+  const h = d.heat || (state.period==='agosto' ? DATA[state.unit].heatAgosto : DATA[state.unit].heat);
   const grid = document.getElementById('heatmap');
   let html = `<div class="hm-corner"></div>` + h.cols.map(c=>`<div class="hm-head">${c}</div>`).join('');
   h.rows.forEach((r,ri)=>{
@@ -910,7 +937,8 @@ function renderRankings(){
 }
 
 function renderMatrix(){
-  const m = state.period==='agosto' ? DATA[state.unit].matrixAgosto : DATA[state.unit].matrix;
+  const d = DATA[state.unit][state.period];
+  const m = d.matrix || (state.period==='agosto' ? DATA[state.unit].matrixAgosto : DATA[state.unit].matrix);
   const grid = document.getElementById('matrixGrid');
   grid.innerHTML = `
     <div class="quad puzzle">
@@ -936,7 +964,7 @@ function renderMatrix(){
 }
 
 function renderCompare(){
-  const f = DATA.fit.hoje, g = DATA.gourmet.hoje;
+  const f = DATA.fit[state.period], g = DATA.gourmet[state.period];
   const rows = [
     { label:'Faturamento', fv:f.fat, gv:g.fat, fmt:fmtR },
     { label:'Ticket médio', fv:f.tk, gv:g.tk, fmt:fmtR },
@@ -1052,6 +1080,7 @@ FECHAMENTO = SNAPSHOT_VALIDADO.FECHAMENTO;
 renderAll();
 var notaValidada = document.getElementById('dataSourceNote');
 if (notaValidada) notaValidada.textContent = '01 SET 2026 · DADOS IMPORTADOS ATÉ 18H16 · VILA FIT + VILA GOURMET';
+if (window.iniciarDadosVivos) window.iniciarDadosVivos();
 </script>
 </body>
 </html>
