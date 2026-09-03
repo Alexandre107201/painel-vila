@@ -572,6 +572,7 @@
          { nome: "Açaí", unidade: "kg", casa: 2, teste: function (n) { return n.indexOf("ACAI") >= 0 && n.indexOf("KG") >= 0; } },
          { nome: "Self almoço", unidade: "kg", casa: 2, teste: function (n) { return n.indexOf("SELF ALMOCO") >= 0; } },
          { nome: "Self café da manhã", unidade: "kg", casa: 2, teste: function (n) { return n.indexOf("SELF CAFE DA MANHA") >= 0; } },
+         { nome: "Comida japonesa", unidade: "un", casa: 0, operacao: "vila_fit", teste: function (n) { return n.indexOf("COMBINADO JAPONES") >= 0 || n.indexOf("JAPONES TEMAKI") >= 0; } },
          { nome: "Pão com pernil", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PAO COM PERNIL") >= 0; } },
          { nome: "Pastel", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PASTEL") === 0 && n.indexOf("KG") < 0; } },
          { nome: "Picolé", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PICOLE") === 0; } }
@@ -1096,7 +1097,7 @@ function renderFocus(){
       return `<span class="focus-change ${classe}">${simbolo} ${Math.abs(variacao).toFixed(1).replace('.',',')}%</span>`;
     };
     return `<tr>
-      <td class="focus-name">${produto.nome}<span class="focus-unit">${produto.unidade}${produto.operacao==='vila_gourmet'?' · Vila Gourmet':''}</span></td>
+      <td class="focus-name">${produto.nome}<span class="focus-unit">${produto.unidade}${produto.operacao==='vila_gourmet'?' · Vila Gourmet':produto.operacao==='vila_fit'?' · Vila Fit':''}</span></td>
       ${valores.map((v,i)=>`<td class="focus-value ${i===valores.length-1?'current':''}">${formatar(v)}${comparativo(i)}</td>`).join('')}
       <td class="focus-value">${formatar(total)}</td>
     </tr>`;
