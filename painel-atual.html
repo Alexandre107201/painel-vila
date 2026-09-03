@@ -6,6 +6,7 @@
 <title>Painel Vila Atualizado — Vila Fit × Vila Gourmet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#14171a;
@@ -85,7 +86,35 @@
     transition:.15s;
   }
   .theme-toggle:hover{color:var(--text);border-color:var(--text-3);}
+  .import-btn{
+    height:36px;border:1px solid var(--fit);border-radius:10px;background:var(--fit-soft);color:var(--fit);
+    padding:0 13px;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;
+  }
+  .import-btn:hover{background:var(--fit);color:#10130f;}
   .timestamp{font-size:11px;color:var(--text-3);letter-spacing:.4px;font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- IMPORTAÇÃO MANUAL ---------- */
+  .import-modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:20px;background:#050708c7;}
+  .import-modal.open{display:flex;}
+  .import-dialog{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 24px 70px #0009;}
+  .import-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;}
+  .import-head h2{font-size:18px;margin:0 0 4px;}
+  .import-head p{font-size:12px;line-height:1.5;color:var(--text-3);margin:0;}
+  .import-close{border:0;background:transparent;color:var(--text-2);font-size:24px;line-height:1;cursor:pointer;padding:0 2px;}
+  .import-field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+  .import-field label{font-size:12px;font-weight:600;color:var(--text-2);}
+  .import-field input{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg-2);color:var(--text);font:14px 'IBM Plex Sans',sans-serif;padding:11px 12px;}
+  .import-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .import-primary,.import-secondary{border-radius:9px;padding:10px 14px;font:600 13px 'IBM Plex Sans',sans-serif;cursor:pointer;}
+  .import-primary{border:1px solid var(--fit);background:var(--fit);color:#10130f;}
+  .import-primary:disabled{opacity:.45;cursor:not-allowed;}
+  .import-secondary{border:1px solid var(--border);background:var(--surface-2);color:var(--text);}
+  .import-file{border:1px dashed var(--border);border-radius:11px;padding:16px;margin-top:4px;background:var(--bg-2);}
+  .import-file input{margin-top:8px;width:100%;color:var(--text-2);font-size:12px;}
+  .import-summary,.import-status{font-size:12px;line-height:1.55;margin-top:12px;padding:11px 12px;border-radius:9px;background:var(--surface-2);color:var(--text-2);}
+  .import-status:empty,.import-summary:empty{display:none;}
+  .import-status.ok{color:var(--fit);border:1px solid var(--fit-soft);}
+  .import-status.error{color:var(--bad);border:1px solid var(--bad-soft);}
 
   /* ---------- RUNRATE CARD (canto superior direito) ---------- */
   .runrate-card{
@@ -287,9 +316,45 @@
         <button class="period-btn" data-period="mes">Setembro/2026</button>
         <button class="period-btn" data-period="agosto">Agosto/2026</button>
       </div>
+      <button class="import-btn" id="openImport" type="button">Importar relatório</button>
       <button class="theme-toggle" id="themeToggle" title="Alternar fundo claro/escuro" aria-label="Alternar fundo claro/escuro">☀</button>
     </div>
     <div class="timestamp" id="dataSourceNote">24 AGO 2026 · DADOS REAIS (TEKNISA, 25/07–24/08) · VILA FIT + VILA GOURMET</div>
+  </div>
+
+  <div class="import-modal" id="importModal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+    <div class="import-dialog">
+      <div class="import-head">
+        <div>
+          <h2 id="importTitle">Importar relatório TEKNISA</h2>
+          <p>Envie o arquivo “Vendas Realizadas no Período”. As vendas repetidas serão ignoradas automaticamente.</p>
+        </div>
+        <button class="import-close" id="closeImport" type="button" aria-label="Fechar">×</button>
+      </div>
+      <form id="importLogin">
+        <div class="import-field">
+          <label for="importEmail">E-mail autorizado</label>
+          <input id="importEmail" type="email" autocomplete="username" required>
+        </div>
+        <div class="import-field">
+          <label for="importPassword">Senha</label>
+          <input id="importPassword" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="import-primary" type="submit">Entrar para importar</button>
+      </form>
+      <div id="importWorkspace" hidden>
+        <div class="import-file">
+          <strong>Selecionar Excel ou CSV</strong>
+          <input id="importFile" type="file" accept=".xlsx,.xls,.csv">
+        </div>
+        <div class="import-summary" id="importSummary"></div>
+        <div class="import-actions">
+          <button class="import-primary" id="confirmImport" type="button" disabled>Importar agora</button>
+          <button class="import-secondary" id="changeImportUser" type="button">Trocar usuário</button>
+        </div>
+      </div>
+      <div class="import-status" id="importStatus" aria-live="polite"></div>
+    </div>
   </div>
 
   <div class="runrate-card" id="runrateCard">
@@ -794,6 +859,256 @@
                carregarDados(new Date());
          });
    }
+
+   /* Importação manual segura do relatório Vendas Realizadas no Período. */
+   var importModal = document.getElementById("importModal");
+   var importLogin = document.getElementById("importLogin");
+   var importWorkspace = document.getElementById("importWorkspace");
+   var importStatus = document.getElementById("importStatus");
+   var importSummary = document.getElementById("importSummary");
+   var confirmImport = document.getElementById("confirmImport");
+   var linhasImportacao = [];
+
+   function definirStatus(mensagem, tipo) {
+         importStatus.textContent = mensagem || "";
+         importStatus.className = "import-status" + (tipo ? " " + tipo : "");
+   }
+
+   function lerSessaoImportacao() {
+         try {
+               var sessao = JSON.parse(sessionStorage.getItem("painel_vila_import_session") || "null");
+               if (!sessao || !sessao.access_token || !sessao.expires_at || sessao.expires_at * 1000 <= Date.now() + 30000) return null;
+               return sessao;
+         } catch (_) {
+               return null;
+         }
+   }
+
+   function atualizarTelaImportacao() {
+         var autenticado = !!lerSessaoImportacao();
+         importLogin.hidden = autenticado;
+         importWorkspace.hidden = !autenticado;
+         if (!autenticado) linhasImportacao = [];
+   }
+
+   function normalizarCabecalho(valor) {
+         return normalizarProduto(valor).replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+   }
+
+   function localizarColuna(cabecalhos, opcoes) {
+         for (var i = 0; i < opcoes.length; i++) {
+               var exata = cabecalhos.indexOf(opcoes[i]);
+               if (exata >= 0) return exata;
+         }
+         for (var j = 0; j < opcoes.length; j++) {
+               var parcial = cabecalhos.findIndex(function (h) { return h.indexOf(opcoes[j]) >= 0; });
+               if (parcial >= 0) return parcial;
+         }
+         return -1;
+   }
+
+   function numeroBR(valor) {
+         if (typeof valor === "number") return Number.isFinite(valor) ? valor : 0;
+         var texto = String(valor == null ? "" : valor).replace(/R\$/gi, "").replace(/\s/g, "");
+         if (texto.indexOf(",") >= 0) texto = texto.replace(/\./g, "").replace(",", ".");
+         return Number(texto) || 0;
+   }
+
+   function dataISO(valor) {
+         if (valor instanceof Date && !isNaN(valor)) return iso(valor);
+         if (typeof valor === "number" && window.XLSX) {
+               var partes = XLSX.SSF.parse_date_code(valor);
+               if (partes) return partes.y + "-" + String(partes.m).padStart(2, "0") + "-" + String(partes.d).padStart(2, "0");
+         }
+         var texto = String(valor || "").trim();
+         var br = texto.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+         if (br) {
+               var ano = br[3].length === 2 ? "20" + br[3] : br[3];
+               return ano + "-" + br[2].padStart(2, "0") + "-" + br[1].padStart(2, "0");
+         }
+         var isoEncontrada = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+         return isoEncontrada ? isoEncontrada[0] : "";
+   }
+
+   function horaSQL(valor) {
+         if (valor instanceof Date && !isNaN(valor)) return String(valor.getHours()).padStart(2, "0") + ":" + String(valor.getMinutes()).padStart(2, "0") + ":" + String(valor.getSeconds()).padStart(2, "0");
+         if (typeof valor === "number") {
+               var segundos = Math.round((valor % 1) * 86400) % 86400;
+               return String(Math.floor(segundos / 3600)).padStart(2, "0") + ":" + String(Math.floor(segundos % 3600 / 60)).padStart(2, "0") + ":" + String(segundos % 60).padStart(2, "0");
+         }
+         var achada = String(valor || "").match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+         return achada ? achada[1].padStart(2, "0") + ":" + achada[2] + ":" + (achada[3] || "00") : "";
+   }
+
+   function operacaoDaLinha(unidade, caixa) {
+         var unidadeNormalizada = normalizarProduto(unidade);
+         var digitos = String(caixa || "").match(/\d+/g);
+         var numeroCaixa = digitos && digitos.length ? Number(digitos[digitos.length - 1]) : null;
+         if (numeroCaixa >= 5 && numeroCaixa <= 8) return "vila_gourmet";
+         if (unidadeNormalizada.indexOf("0001") >= 0 || unidadeNormalizada.indexOf("GOURMET") >= 0) return "vila_gourmet";
+         return "vila_fit";
+   }
+
+   function converterPlanilha(matriz) {
+         var linhaCabecalho = -1;
+         for (var i = 0; i < Math.min(matriz.length, 30); i++) {
+               var teste = (matriz[i] || []).map(normalizarCabecalho);
+               if (localizarColuna(teste, ["DATA"]) >= 0 && localizarColuna(teste, ["PRODUTO"]) >= 0 &&
+                   localizarColuna(teste, ["QUANTIDADE", "QTD"]) >= 0 && localizarColuna(teste, ["VALOR TOTAL", "VLR TOTAL"]) >= 0) {
+                     linhaCabecalho = i;
+                     break;
+               }
+         }
+         if (linhaCabecalho < 0) throw new Error("Não encontrei as colunas Data, Produto, Quantidade e Valor Total.");
+         var cab = matriz[linhaCabecalho].map(normalizarCabecalho);
+         var col = {
+               unidade: localizarColuna(cab, ["UNIDADE", "EMPRESA"]),
+               caixa: localizarColuna(cab, ["CAIXA", "PDV"]),
+               venda: localizarColuna(cab, ["NR VENDA", "N VENDA", "NUMERO VENDA"]),
+               data: localizarColuna(cab, ["DATA"]),
+               hora: localizarColuna(cab, ["HORA"]),
+               produto: localizarColuna(cab, ["PRODUTO", "DESCRICAO PRODUTO"]),
+               codigo: localizarColuna(cab, ["CODIGO", "COD PRODUTO"]),
+               qtd: localizarColuna(cab, ["QUANTIDADE", "QTD"]),
+               unitario: localizarColuna(cab, ["VALOR UNITARIO", "VLR UNITARIO", "PRECO UNITARIO"]),
+               total: localizarColuna(cab, ["VALOR TOTAL", "VLR TOTAL"]),
+               pagamento: localizarColuna(cab, ["FORMA PAGAMENTO", "FORMA DE PAGAMENTO", "PAGAMENTO"])
+         };
+         if (col.venda < 0 || col.hora < 0) throw new Error("O arquivo precisa conter também Nº da Venda e Hora.");
+         var saida = [];
+         for (var r = linhaCabecalho + 1; r < matriz.length; r++) {
+               var linha = matriz[r] || [];
+               var data = dataISO(linha[col.data]);
+               var hora = horaSQL(linha[col.hora]);
+               var produto = String(linha[col.produto] || "").trim();
+               var venda = String(linha[col.venda] || "").trim();
+               if (!data || !hora || !produto || !venda) continue;
+               var unidade = col.unidade >= 0 ? String(linha[col.unidade] || "").trim() : "";
+               var caixa = col.caixa >= 0 ? String(linha[col.caixa] || "").trim() : "";
+               saida.push({
+                     operacao: operacaoDaLinha(unidade, caixa),
+                     unidade: unidade || "0002 - VILA FIT",
+                     caixa: caixa || null,
+                     nr_venda: venda,
+                     data: data,
+                     hora: hora,
+                     produto: produto,
+                     codigo: col.codigo >= 0 ? String(linha[col.codigo] == null ? "" : linha[col.codigo]).trim() : "",
+                     quantidade: numeroBR(linha[col.qtd]),
+                     valor_unitario: col.unitario >= 0 ? numeroBR(linha[col.unitario]) : 0,
+                     valor_total: numeroBR(linha[col.total]),
+                     forma_pagamento: col.pagamento >= 0 ? String(linha[col.pagamento] || "").trim() || null : null
+               });
+         }
+         if (!saida.length) throw new Error("Nenhuma venda válida foi encontrada no arquivo.");
+         return saida;
+   }
+
+   document.getElementById("openImport").addEventListener("click", function () {
+         definirStatus("");
+         atualizarTelaImportacao();
+         importModal.classList.add("open");
+   });
+   document.getElementById("closeImport").addEventListener("click", function () { importModal.classList.remove("open"); });
+   importModal.addEventListener("click", function (e) { if (e.target === importModal) importModal.classList.remove("open"); });
+   document.addEventListener("keydown", function (e) { if (e.key === "Escape") importModal.classList.remove("open"); });
+
+   importLogin.addEventListener("submit", function (e) {
+         e.preventDefault();
+         definirStatus("Validando acesso…");
+         var email = document.getElementById("importEmail").value.trim();
+         var senha = document.getElementById("importPassword").value;
+         fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+               method: "POST",
+               headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+               body: JSON.stringify({ email: email, password: senha })
+         }).then(function (r) {
+               return r.json().then(function (dados) { if (!r.ok) throw new Error(dados.error_description || dados.msg || "Acesso negado."); return dados; });
+         }).then(function (sessao) {
+               sessionStorage.setItem("painel_vila_import_session", JSON.stringify(sessao));
+               document.getElementById("importPassword").value = "";
+               atualizarTelaImportacao();
+               definirStatus("Acesso autorizado.", "ok");
+         }).catch(function (erro) { definirStatus(erro.message, "error"); });
+   });
+
+   document.getElementById("changeImportUser").addEventListener("click", function () {
+         sessionStorage.removeItem("painel_vila_import_session");
+         linhasImportacao = [];
+         importSummary.textContent = "";
+         confirmImport.disabled = true;
+         atualizarTelaImportacao();
+         definirStatus("");
+   });
+
+   document.getElementById("importFile").addEventListener("change", function (e) {
+         var arquivo = e.target.files && e.target.files[0];
+         if (!arquivo) return;
+         if (!window.XLSX) { definirStatus("Leitor de Excel indisponível. Recarregue a página e tente novamente.", "error"); return; }
+         definirStatus("Lendo e validando o arquivo…");
+         arquivo.arrayBuffer().then(function (buffer) {
+               var livro = XLSX.read(buffer, { type: "array", cellDates: true });
+               var planilha = livro.Sheets[livro.SheetNames[0]];
+               var matriz = XLSX.utils.sheet_to_json(planilha, { header: 1, defval: "", raw: true });
+               linhasImportacao = converterPlanilha(matriz);
+               var datas = linhasImportacao.map(function (l) { return l.data; }).sort();
+               var fit = linhasImportacao.filter(function (l) { return l.operacao === "vila_fit"; }).length;
+               var gourmet = linhasImportacao.length - fit;
+               importSummary.innerHTML = "<b>" + linhasImportacao.length.toLocaleString("pt-BR") + " itens validados</b><br>" +
+                     "Período: " + datas[0].split("-").reverse().join("/") + " a " + datas[datas.length - 1].split("-").reverse().join("/") + "<br>" +
+                     "Vila Fit: " + fit.toLocaleString("pt-BR") + " · Vila Gourmet: " + gourmet.toLocaleString("pt-BR");
+               confirmImport.disabled = false;
+               definirStatus("Confira o resumo e clique em “Importar agora”.", "ok");
+         }).catch(function (erro) {
+               linhasImportacao = [];
+               importSummary.textContent = "";
+               confirmImport.disabled = true;
+               definirStatus(erro.message || "Não foi possível ler o arquivo.", "error");
+         });
+   });
+
+   confirmImport.addEventListener("click", function () {
+         var sessao = lerSessaoImportacao();
+         if (!sessao) { atualizarTelaImportacao(); definirStatus("Sua sessão expirou. Entre novamente.", "error"); return; }
+         if (!linhasImportacao.length) return;
+         confirmImport.disabled = true;
+         definirStatus("Importando " + linhasImportacao.length.toLocaleString("pt-BR") + " itens…");
+         var lotes = [];
+         for (var i = 0; i < linhasImportacao.length; i += 300) lotes.push(linhasImportacao.slice(i, i + 300));
+         var inseridos = 0;
+         lotes.reduce(function (fila, lote, indice) {
+               return fila.then(function () {
+                     definirStatus("Importando lote " + (indice + 1) + " de " + lotes.length + "…");
+                     return fetch(SUPABASE_URL + "/rest/v1/vendas_teknisa?on_conflict=nr_venda,codigo,data,quantidade,valor_total", {
+                           method: "POST",
+                           headers: {
+                                 apikey: SUPABASE_ANON_KEY,
+                                 Authorization: "Bearer " + sessao.access_token,
+                                 "Content-Type": "application/json",
+                                 Prefer: "resolution=ignore-duplicates,return=representation"
+                           },
+                           body: JSON.stringify(lote)
+                     }).then(function (r) {
+                           return r.json().then(function (dados) {
+                                 if (!r.ok) throw new Error(dados.message || dados.hint || "Falha ao gravar as vendas.");
+                                 inseridos += Array.isArray(dados) ? dados.length : 0;
+                           });
+                     });
+               });
+         }, Promise.resolve()).then(function () {
+               var repetidos = linhasImportacao.length - inseridos;
+               definirStatus(inseridos.toLocaleString("pt-BR") + " itens incluídos" +
+                     (repetidos ? " · " + repetidos.toLocaleString("pt-BR") + " repetidos ignorados" : "") +
+                     ". O painel foi atualizado.", "ok");
+               linhasImportacao = [];
+               importSummary.textContent = "";
+               document.getElementById("importFile").value = "";
+               if (window.iniciarDadosVivos) window.iniciarDadosVivos();
+         }).catch(function (erro) {
+               confirmImport.disabled = false;
+               definirStatus(erro.message || "A importação não foi concluída.", "error");
+         });
+   });
 
    window.iniciarDadosVivos = iniciarDadosVivos;
 })();
