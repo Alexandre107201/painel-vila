@@ -575,7 +575,13 @@
          { nome: "Comida japonesa", unidade: "un", casa: 0, operacao: "vila_fit", teste: function (n) { return n.indexOf("COMBINADO JAPONES") >= 0 || n.indexOf("JAPONES TEMAKI") >= 0; } },
          { nome: "Pão com pernil", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PAO COM PERNIL") >= 0; } },
          { nome: "Pastel", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PASTEL") === 0 && n.indexOf("KG") < 0; } },
-         { nome: "Picolé", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PICOLE") === 0; } }
+         { nome: "Picolé", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PICOLE") === 0; } },
+         { nome: "Bebidas não alcoólicas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(AGUA|COCA|GUARANA|FANTA|SPRITE|SUCO|REFRI|H2O|H20H|ENERGET|RED ?BULL|MONSTER|GATORADE|POWERADE|DEL VALLE|KAPO|MINEIRINHO|COCO VERDE|ITALAC PRO)/.test(n) && n.indexOf("CAFE GELADO") < 0; } },
+         { nome: "Cervejas e chopes", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(BRAHMA|CERVEJ|CORONA|HEINEKEN|SPATEN|AMSTEL|CHOP|CHOPP|STELLA|SKOL|BUDWEISER|ANTARCTICA.*600|BECK|BOHEMIA|PETRA|ITAIPAVA)/.test(n); } },
+         { nome: "Salgados e lanches", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(TORTA|ENROLAD|COXINHA|EMPADA|ESFIRRA|ESFIHA|QUIBE|KIBE|SANDUICHE|HAMBUR|MISTO|SALGADO|PIZZA|PANINI|CROISSANT|X BURG|XBURG|CACHORRO QUENTE)/.test(n) && n.indexOf("PASTEL") < 0 && n.indexOf("PAO COM PERNIL") < 0; } },
+         { nome: "Pratos e grelhados", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(PRATO|GRELHADO|FILE|TILAPIA|PARMEGIANA|BABY BE|KIDS |MINI FRANGO|ANCHO|PICANHA|SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|LIMAO SICILIANO|CARNE SECA E CAMBOTIA|GO KIDS)/.test(n); } },
+         { nome: "Espetinhos", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(ESPETINHO|ESPETO )/.test(n); } },
+         { nome: "Buffet de massas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /BUFFET.*MASSA/.test(n); } }
    ];
 
    function normalizarProduto(texto) {
@@ -587,7 +593,8 @@
                return linhas.reduce(function (soma, linha) {
                      var operacaoAlvo = produto.operacao || (chave === "ambas" ? null : chave);
                      var operacaoCorreta = !operacaoAlvo || linha.operacao === operacaoAlvo;
-                     return soma + (operacaoCorreta && produto.teste(normalizarProduto(linha.produto)) ? Number(linha.quantidade || 0) : 0);
+                     var valor = produto.medida === "valor" ? linha.valor_total : linha.quantidade;
+                     return soma + (operacaoCorreta && produto.teste(normalizarProduto(linha.produto)) ? Number(valor || 0) : 0);
                }, 0);
          });
    }
