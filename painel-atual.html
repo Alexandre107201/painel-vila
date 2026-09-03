@@ -335,7 +335,7 @@
   <div class="panel focus-panel">
     <div class="panel-head">
       <h2>Performance dos produtos foco</h2>
-      <span class="panel-note">Últimas 5 semanas · * semana parcial · tendência contra os mesmos dias da semana anterior</span>
+      <span class="panel-note">Últimas 5 semanas · * semana parcial · tendência entre as 2 últimas semanas fechadas</span>
     </div>
     <div class="focus-scroll">
       <table class="focus-table">
@@ -592,10 +592,6 @@
    function historicoFoco(linhas, chave, segAtual) {
          var semanas = [];
          var linhasUnidade = filtrar(linhas, chave);
-         var ultimaData = linhasUnidade.reduce(function (max, linha) { return String(linha.data || "") > max ? String(linha.data) : max; }, iso(segAtual));
-         var p = ultimaData.split("-");
-         var ultimaDataObj = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-         var diasDecorridos = Math.max(0, Math.round((ultimaDataObj - segAtual) / 86400000));
          for (var i = 4; i >= 0; i--) {
                var inicio = addDias(segAtual, -7 * i);
                var fim = i === 0 ? addDias(segAtual, 6) : addDias(inicio, 6);
@@ -605,12 +601,7 @@
                semanas.push({
                      rotulo: String(inicio.getDate()).padStart(2, "0") + "/" + String(inicio.getMonth() + 1).padStart(2, "0") + "–" + String(fim.getDate()).padStart(2, "0") + "/" + String(fim.getMonth() + 1).padStart(2, "0"),
                      atual: i === 0,
-                     valores: somarProdutosFoco(recorte),
-                     comparacao: i === 0 ? somarProdutosFoco(linhasUnidade.filter(function (linha) {
-                           var compInicio = addDias(segAtual, -7);
-                           var compFim = addDias(compInicio, diasDecorridos);
-                           return String(linha.data || "") >= iso(compInicio) && String(linha.data || "") <= iso(compFim);
-                     })) : null
+                     valores: somarProdutosFoco(recorte)
                });
          }
          return semanas;
@@ -1091,8 +1082,8 @@ function renderFocus(){
   head.innerHTML = '<tr><th>Produto foco</th>' + semanas.map(s=>`<th>${s.rotulo}${s.atual?' *':''}</th>`).join('') + '<th>Total</th><th>Tendência</th></tr>';
   body.innerHTML = window.PRODUTOS_FOCO.map((produto, idx)=>{
     const valores = semanas.map(s=>Number(s.valores[idx] || 0));
-    const atual = valores[valores.length-1];
-    const anterior = semanas[semanas.length-1].comparacao ? Number(semanas[semanas.length-1].comparacao[idx] || 0) : valores[valores.length-2];
+    const atual = valores[valores.length-2];
+    const anterior = valores[valores.length-3];
     const total = valores.reduce((s,v)=>s+v,0);
     const variacao = anterior ? ((atual-anterior)/anterior)*100 : null;
     const trendClass = variacao===null || Math.abs(variacao)<0.05 ? 'flat' : variacao>0 ? 'up' : 'down';
