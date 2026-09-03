@@ -567,7 +567,7 @@
 
    var PRODUTOS_FOCO = window.PRODUTOS_FOCO = [
          { nome: "Café gelado", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("CAFE GELADO") >= 0; } },
-         { nome: "Salada", unidade: "kg", casa: 3, teste: function (n) { return n.indexOf("SALADA") >= 0 && n.indexOf("KG") >= 0; } },
+         { nome: "Buffet de salada", unidade: "kg", casa: 3, operacao: "vila_gourmet", teste: function (n) { return n.indexOf("BUFFET SALADA") >= 0; } },
          { nome: "Iogurte frozen", unidade: "kg", casa: 3, teste: function (n) { return n.indexOf("IOGURTE") >= 0 && (n.indexOf("KG") >= 0 || n.indexOf("FROZEN") >= 0); } },
          { nome: "Açaí", unidade: "kg", casa: 2, teste: function (n) { return n.indexOf("ACAI") >= 0 && n.indexOf("KG") >= 0; } },
          { nome: "Self almoço", unidade: "kg", casa: 2, teste: function (n) { return n.indexOf("SELF ALMOCO") >= 0; } },
@@ -581,27 +581,28 @@
          return String(texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
    }
 
-   function somarProdutosFoco(linhas) {
+   function somarProdutosFoco(linhas, chave) {
          return PRODUTOS_FOCO.map(function (produto) {
                return linhas.reduce(function (soma, linha) {
-                     return soma + (produto.teste(normalizarProduto(linha.produto)) ? Number(linha.quantidade || 0) : 0);
+                     var operacaoAlvo = produto.operacao || (chave === "ambas" ? null : chave);
+                     var operacaoCorreta = !operacaoAlvo || linha.operacao === operacaoAlvo;
+                     return soma + (operacaoCorreta && produto.teste(normalizarProduto(linha.produto)) ? Number(linha.quantidade || 0) : 0);
                }, 0);
          });
    }
 
    function historicoFoco(linhas, chave, segAtual) {
          var semanas = [];
-         var linhasUnidade = filtrar(linhas, chave);
          for (var i = 4; i >= 0; i--) {
                var inicio = addDias(segAtual, -7 * i);
                var fim = i === 0 ? addDias(segAtual, 6) : addDias(inicio, 6);
-               var recorte = linhasUnidade.filter(function (linha) {
+               var recorte = linhas.filter(function (linha) {
                      return String(linha.data || "") >= iso(inicio) && String(linha.data || "") <= iso(fim);
                });
                semanas.push({
                      rotulo: String(inicio.getDate()).padStart(2, "0") + "/" + String(inicio.getMonth() + 1).padStart(2, "0") + "–" + String(fim.getDate()).padStart(2, "0") + "/" + String(fim.getMonth() + 1).padStart(2, "0"),
                      atual: i === 0,
-                     valores: somarProdutosFoco(recorte)
+                     valores: somarProdutosFoco(recorte, chave)
                });
          }
          return semanas;
@@ -1095,7 +1096,7 @@ function renderFocus(){
       return `<span class="focus-change ${classe}">${simbolo} ${Math.abs(variacao).toFixed(1).replace('.',',')}%</span>`;
     };
     return `<tr>
-      <td class="focus-name">${produto.nome}<span class="focus-unit">${produto.unidade}</span></td>
+      <td class="focus-name">${produto.nome}<span class="focus-unit">${produto.unidade}${produto.operacao==='vila_gourmet'?' · Vila Gourmet':''}</span></td>
       ${valores.map((v,i)=>`<td class="focus-value ${i===valores.length-1?'current':''}">${formatar(v)}${comparativo(i)}</td>`).join('')}
       <td class="focus-value">${formatar(total)}</td>
     </tr>`;
