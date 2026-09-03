@@ -577,8 +577,11 @@
          { nome: "Pastel", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PASTEL") === 0 && n.indexOf("KG") < 0; } },
          { nome: "Picolé", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PICOLE") === 0; } },
          { nome: "Bebidas não alcoólicas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(AGUA|COCA|GUARANA|FANTA|SPRITE|SUCO|REFRI|H2O|H20H|ENERGET|RED ?BULL|MONSTER|GATORADE|POWERADE|DEL VALLE|KAPO|MINEIRINHO|COCO VERDE|ITALAC PRO)/.test(n) && n.indexOf("CAFE GELADO") < 0; } },
-         { nome: "Cervejas e chopes", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(BRAHMA|CERVEJ|CORONA|HEINEKEN|SPATEN|AMSTEL|CHOP|CHOPP|STELLA|SKOL|BUDWEISER|ANTARCTICA.*600|BECK|BOHEMIA|PETRA|ITAIPAVA)/.test(n); } },
-         { nome: "Salgados e lanches", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(TORTA|ENROLAD|COXINHA|EMPADA|ESFIRRA|ESFIHA|QUIBE|KIBE|SANDUICHE|HAMBUR|MISTO|SALGADO|PIZZA|PANINI|CROISSANT|X BURG|XBURG|CACHORRO QUENTE)/.test(n) && n.indexOf("PASTEL") < 0 && n.indexOf("PAO COM PERNIL") < 0; } },
+         { nome: "Cervejas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(BRAHMA|CERVEJ|CORONA|HEINEKEN|SPATEN|AMSTEL|STELLA|SKOL|BUDWEISER|ANTARCTICA.*600|BECK|BOHEMIA|PETRA|ITAIPAVA)/.test(n) && !/(CHOP|CHOPP)/.test(n); } },
+         { nome: "Chopes", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(CHOP|CHOPP)/.test(n); } },
+         { nome: "Salgados", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(TORTA|ENROLAD|COXINHA|EMPADA|ESFIRRA|ESFIHA|QUIBE|KIBE|SALGADO|PIZZA|CROISSANT)/.test(n) && n.indexOf("PASTEL") < 0; } },
+         { nome: "Lanches", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(SANDUICHE|HAMBUR|MISTO|PANINI|X BURG|XBURG|CACHORRO QUENTE)/.test(n) && n.indexOf("PAO COM PERNIL") < 0; } },
+         { nome: "Doces e confeitaria", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(DOCE|BOLO|PUDIM|BRIGADEIRO|MOUSSE|SOBREMESA|CHOCOLATE|KINDER|COOKIE|COPO DA FELICIDADE|SORVETE|BROWNIE|BOMBOM|TRUFA)/.test(n); } },
          { nome: "Pratos e grelhados", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(PRATO|GRELHADO|FILE|TILAPIA|PARMEGIANA|BABY BE|KIDS |MINI FRANGO|ANCHO|PICANHA|SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|LIMAO SICILIANO|CARNE SECA E CAMBOTIA|GO KIDS)/.test(n); } },
          { nome: "Espetinhos", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(ESPETINHO|ESPETO )/.test(n); } },
          { nome: "Buffet de massas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /BUFFET.*MASSA/.test(n); } }
