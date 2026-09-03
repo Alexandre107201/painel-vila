@@ -949,42 +949,60 @@
          return "vila_fit";
    }
 
+   function metadadosVenda(valor) {
+         var texto = String(valor || "");
+         function trecho(expressao) {
+               var encontrado = texto.match(expressao);
+               return encontrado ? encontrado[1].trim() : "";
+         }
+         var dataHora = trecho(/Dt\.\s*Ven\.?:\s*([^|]+)/i);
+         return {
+               caixa: trecho(/Caixa\s*:\s*([^|]+)/i),
+               numero: trecho(/Nr\.\s*Ven\.?:\s*([^|]+)/i),
+               data: dataISO(dataHora),
+               hora: horaSQL(dataHora)
+         };
+   }
+
    function converterPlanilha(matriz) {
          var linhaCabecalho = -1;
          for (var i = 0; i < Math.min(matriz.length, 30); i++) {
                var teste = (matriz[i] || []).map(normalizarCabecalho);
-               if (localizarColuna(teste, ["DATA"]) >= 0 && localizarColuna(teste, ["PRODUTO"]) >= 0 &&
-                   localizarColuna(teste, ["QUANTIDADE", "QTD"]) >= 0 && localizarColuna(teste, ["VALOR TOTAL", "VLR TOTAL"]) >= 0) {
+               var temDataSeparada = localizarColuna(teste, ["DATA"]) >= 0;
+               var temVendaTeknisa = localizarColuna(teste, ["VENDA"]) >= 0;
+               if ((temDataSeparada || temVendaTeknisa) && localizarColuna(teste, ["PRODUTO"]) >= 0 &&
+                   localizarColuna(teste, ["QUANTIDADE", "QTDE", "QTD"]) >= 0 && localizarColuna(teste, ["VALOR TOTAL", "VLR TOTAL", "VR TOTAL"]) >= 0) {
                      linhaCabecalho = i;
                      break;
                }
          }
-         if (linhaCabecalho < 0) throw new Error("Não encontrei as colunas Data, Produto, Quantidade e Valor Total.");
+         if (linhaCabecalho < 0) throw new Error("Não reconheci o formato deste relatório TEKNISA. Verifique se ele é o arquivo “Vendas Realizadas no Período”.");
          var cab = matriz[linhaCabecalho].map(normalizarCabecalho);
          var col = {
                unidade: localizarColuna(cab, ["UNIDADE", "EMPRESA"]),
                caixa: localizarColuna(cab, ["CAIXA", "PDV"]),
-               venda: localizarColuna(cab, ["NR VENDA", "N VENDA", "NUMERO VENDA"]),
+               venda: localizarColuna(cab, ["NR VENDA", "N VENDA", "NUMERO VENDA", "VENDA"]),
                data: localizarColuna(cab, ["DATA"]),
                hora: localizarColuna(cab, ["HORA"]),
                produto: localizarColuna(cab, ["PRODUTO", "DESCRICAO PRODUTO"]),
                codigo: localizarColuna(cab, ["CODIGO", "COD PRODUTO"]),
-               qtd: localizarColuna(cab, ["QUANTIDADE", "QTD"]),
-               unitario: localizarColuna(cab, ["VALOR UNITARIO", "VLR UNITARIO", "PRECO UNITARIO"]),
-               total: localizarColuna(cab, ["VALOR TOTAL", "VLR TOTAL"]),
+               qtd: localizarColuna(cab, ["QUANTIDADE", "QTDE", "QTD"]),
+               unitario: localizarColuna(cab, ["VALOR UNITARIO", "VLR UNITARIO", "VR UNITARIO", "PRECO UNITARIO", "PR UNIT"]),
+               total: localizarColuna(cab, ["VALOR TOTAL", "VLR TOTAL", "VR TOTAL"]),
                pagamento: localizarColuna(cab, ["FORMA PAGAMENTO", "FORMA DE PAGAMENTO", "PAGAMENTO"])
          };
-         if (col.venda < 0 || col.hora < 0) throw new Error("O arquivo precisa conter também Nº da Venda e Hora.");
+         if (col.venda < 0) throw new Error("O arquivo precisa conter a identificação da venda.");
          var saida = [];
          for (var r = linhaCabecalho + 1; r < matriz.length; r++) {
                var linha = matriz[r] || [];
-               var data = dataISO(linha[col.data]);
-               var hora = horaSQL(linha[col.hora]);
+               var infoVenda = metadadosVenda(linha[col.venda]);
+               var data = col.data >= 0 ? dataISO(linha[col.data]) : infoVenda.data;
+               var hora = col.hora >= 0 ? horaSQL(linha[col.hora]) : infoVenda.hora;
                var produto = String(linha[col.produto] || "").trim();
-               var venda = String(linha[col.venda] || "").trim();
+               var venda = infoVenda.numero || String(linha[col.venda] || "").trim();
                if (!data || !hora || !produto || !venda) continue;
                var unidade = col.unidade >= 0 ? String(linha[col.unidade] || "").trim() : "";
-               var caixa = col.caixa >= 0 ? String(linha[col.caixa] || "").trim() : "";
+               var caixa = col.caixa >= 0 ? String(linha[col.caixa] || "").trim() : infoVenda.caixa;
                saida.push({
                      operacao: operacaoDaLinha(unidade, caixa),
                      unidade: unidade || "0002 - VILA FIT",
