@@ -311,6 +311,7 @@
       </div>
       <div class="period-toggle">
         <button class="period-btn active" data-period="hoje">Hoje</button>
+        <button class="period-btn" data-period="ontem" disabled title="Carregando os dados de ontem">Ontem</button>
         <button class="period-btn" data-period="semana">Semana atual</button>
         <button class="period-btn" data-period="semana_anterior" disabled title="Carregando a última semana completa">Semana anterior</button>
         <button class="period-btn" data-period="mes">Setembro/2026</button>
@@ -721,6 +722,11 @@
 
    function carregarDados(hoje) {
          var d0 = iso(hoje);
+         var ontem = addDias(hoje, -1);
+         var dOntem = iso(ontem);
+         var dOntemSemanaAnt = iso(addDias(ontem, -7));
+         var dOntemMesAnt = iso(addMeses(ontem, -1));
+         var dOntemAnoAnt = iso(mesmoDiaSemanaAnoAnterior(ontem));
          var dSemanaAnt = iso(addDias(hoje, -7));
          var dMesAnt = iso(addMeses(hoje, -1));
          var dAnoAnt = iso(mesmoDiaSemanaAnoAnterior(hoje));
@@ -748,13 +754,17 @@
               buscar(sIni, sFim), buscar(sAntIni, sAntFim), buscar(sMesIni, sMesFim), buscar(sAnoIni, sAnoFim),
               buscar(mIni, mFim), buscar(mAntIni, mAntFim), buscar(mAnoIni, mAnoFim),
               buscar(sAntAntIni, sAntAntFim), buscar(sAntMesIni, sAntMesFim), buscar(sAntAnoIni, sAntAnoFim),
-              buscar(focoIni, sFim)
+              buscar(focoIni, sFim),
+              buscar(dOntem, dOntem), buscar(dOntemSemanaAnt, dOntemSemanaAnt),
+              buscar(dOntemMesAnt, dOntemMesAnt), buscar(dOntemAnoAnt, dOntemAnoAnt)
             ]).then(function (r) {
               var dHoje = r[0], dSemanaAnt = r[1], dMes = r[2], dAno = r[3];
               var wAtual = r[4], wAnt = r[5], wMes = r[6], wAno = r[7];
               var mAtual = r[8], mAnt = r[9], mAno = r[10];
               var wAntAnt = r[11], wAntMes = r[12], wAntAno = r[13];
               var wFoco = r[14];
+              var linhasOntem = r[15], linhasOntemSemanaAnt = r[16];
+              var linhasOntemMesAnt = r[17], linhasOntemAnoAnt = r[18];
               var dataExibida = d0;
               var usandoUltimoDia = false;
               if (!dHoje.length && mAtual.length) {
@@ -774,6 +784,7 @@
                         var fAnoDia = ateHora(filtrar(dAno, chave), corteHoje);
                         var fSem = filtrar(wAtual, chave);
                         var fMes = filtrar(mAtual, chave);
+                        var fOntem = filtrar(linhasOntem, chave);
                         var chaveTela = chave === "vila_fit" ? "fit" : chave === "vila_gourmet" ? "gourmet" : "ambas";
                         var anterior = dadosAnteriores[chaveTela] || {};
                         return {
@@ -783,6 +794,11 @@
                                                   anterior: pct(somaFat(fHoje), somaFat(fSemanaAntDia)),
                                                   mesAnterior: pct(somaFat(fHoje), somaFat(filtrar(dMes, chave))),
                                                   anoAnterior: pct(somaFat(fHoje), somaFat(fAnoDia))
+                                    }),
+                                    ontem: bloco(fOntem, "Ontem - " + fmtBR(ontem) + " (dia fechado)", {
+                                                  anterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemSemanaAnt, chave))),
+                                                  mesAnterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemMesAnt, chave))),
+                                                  anoAnterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemAnoAnt, chave)))
                                     }),
                                     semana: bloco(fSem, "Semana " + fmtBR(segAtual) + " a " + fmtBR(hoje), {
                                                   anterior: pct(somaFat(fSem), somaFat(filtrar(wAnt, chave))),
@@ -838,6 +854,10 @@
               document.querySelectorAll('[data-period="semana_anterior"]').forEach(function (btn) {
                     btn.disabled = false;
                     btn.title = "Última semana completa (seg–dom)";
+              });
+              document.querySelectorAll('[data-period="ontem"]').forEach(function (btn) {
+                    btn.disabled = false;
+                    btn.title = "Resultado do dia anterior";
               });
               var nota = document.getElementById("dataSourceNote");
               if (nota) {
@@ -1256,10 +1276,12 @@ let state = { unit:'fit', period:'hoje' };
 
 function renderKPIs(){
   const d = DATA[state.unit][state.period];
-  const rotulo = state.period==='hoje' ? 'dia'
+  const periodoDiario = state.period==='hoje' || state.period==='ontem';
+  const rotulo = periodoDiario ? 'dia'
                : (state.period==='semana' || state.period==='semana_anterior') ? 'semana'
                : 'periodo';
   const rotuloAnterior = state.period==='hoje' ? 'mesmo dia da semana anterior (até o mesmo horário)'
+                       : state.period==='ontem' ? 'mesmo dia da semana anterior'
                        : (state.period==='semana' || state.period==='semana_anterior') ? 'semana anterior'
                        : 'mes anterior';
 
@@ -1277,9 +1299,9 @@ function renderKPIs(){
     }
   }
   if(d.deltaAnoAnt===null || d.deltaAnoAnt===undefined){
-    extraCompares.push({ up:null, text: state.period==='hoje' ? 'sem histórico do mesmo dia da semana no ano anterior' : 'sem dado do mesmo '+rotulo+' do ano anterior' });
+    extraCompares.push({ up:null, text: periodoDiario ? 'sem histórico do mesmo dia da semana no ano anterior' : 'sem dado do mesmo '+rotulo+' do ano anterior' });
   } else {
-    extraCompares.push({ up: d.deltaAnoAnt>=0, text: (d.deltaAnoAnt>=0?'+':'')+d.deltaAnoAnt.toFixed(1)+'% vs '+(state.period==='hoje' ? 'mesmo dia da semana no ano anterior' : 'mesmo '+rotulo+' do ano anterior') });
+    extraCompares.push({ up: d.deltaAnoAnt>=0, text: (d.deltaAnoAnt>=0?'+':'')+d.deltaAnoAnt.toFixed(1)+'% vs '+(periodoDiario ? 'mesmo dia da semana no ano anterior' : 'mesmo '+rotulo+' do ano anterior') });
   }
   const kpis = [
     { label:'Faturamento', value: fmtR(d.fat), delta: faturamentoDelta, deltaLabel: faturamentoLabel, extra: extraCompares },
