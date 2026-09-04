@@ -181,3 +181,12 @@ function renderRunrate(){
 
 // Re-renderiza com as versoes corrigidas assim que o arquivo carrega.
 if (typeof renderAll === 'function') { try { renderAll(); } catch(e){} }
+
+// Ativa a instalação do Painel Vila como aplicativo no Android/Chrome.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./service-worker.js').catch(function (erro) {
+      console.error('Falha ao instalar o Painel Vila como aplicativo.', erro);
+    });
+  });
+}
