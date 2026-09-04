@@ -1,8 +1,8 @@
 {
     "id": "painel-atual",
-    "name": "Painel Vila",
-    "short_name": "Painel Vila",
-    "description": "Painel de gestao Vila Fit x Vila Gourmet",
+    "name": "Dashboard Vila Fit",
+    "short_name": "Dashboard Vila Fit",
+    "description": "Dashboard de gestao Vila Fit e Vila Gourmet",
     "start_url": "./painel-atual.html",
     "scope": "./",
     "display": "standalone",
