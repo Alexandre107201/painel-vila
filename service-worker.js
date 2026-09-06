@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dashboard-vila-fit-v2';
+const CACHE_NAME = 'dashboard-vila-fit-v3';
 const APP_SHELL = [
   './painel-atual.html',
   './manifest.json',
