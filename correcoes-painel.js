@@ -6,6 +6,13 @@
 // ============================================================
 function renderActions(){
   const d = DATA[state.unit][state.period];
+  if(d.semDados){
+    const lista = document.getElementById('actionsList');
+    lista.innerHTML = `<li class="action-item">
+      <span class="action-text" style="color:var(--text-3)">Aguardando a importação do relatório de hoje. Nenhum alerta ou comparação foi calculado.</span>
+    </li>`;
+    return;
+  }
   const nomeUnidade = state.unit==='fit' ? 'Vila Fit'
                     : state.unit==='gourmet' ? 'Vila Gourmet'
                     : 'as duas unidades';
@@ -118,6 +125,16 @@ function renderRunrate(){
   const elValor = document.getElementById('runrateValue');
   const elBase  = document.getElementById('runrateBasis');
   const elComp  = document.getElementById('runrateCompare');
+
+  const periodoAtual = DATA[state.unit] && DATA[state.unit][state.period];
+  if(periodoAtual && periodoAtual.semDados){
+    if(label) label.textContent = 'AGUARDANDO IMPORTAÇÃO';
+    elValor.textContent = '—';
+    elValor.style.color = 'var(--text-3)';
+    elBase.textContent = 'o relatório de hoje ainda não foi importado';
+    elComp.innerHTML = '<div class="line pending">projeções e comparações temporariamente suspensas</div>';
+    return;
+  }
 
   // ----- Periodo de mes fechado (Agosto): mostra o realizado -----
   if(state.period === 'agosto'){
