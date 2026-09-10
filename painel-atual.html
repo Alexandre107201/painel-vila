@@ -524,6 +524,23 @@
          });
    }
 
+   function buscarResumoDiario(de, ate) {
+         var url = SUPABASE_URL + "/rest/v1/vw_kpis_diarios?select=operacao,data,faturamento&data=gte." + de +
+               "&data=lte." + ate + "&order=data.asc,operacao.asc";
+         return fetch(url, {
+               headers: {
+                     apikey: SUPABASE_ANON_KEY,
+                     Authorization: "Bearer " + SUPABASE_ANON_KEY
+               }
+         }).then(function (r) {
+               if (!r.ok) throw new Error("HTTP " + r.status);
+               return r.json();
+         }).catch(function (e) {
+               console.error("Falha na consulta do resumo diário de " + de + " a " + ate + ".", e);
+               return [];
+         });
+   }
+
    function filtrar(linhas, chave) {
          if (chave === "ambas") return linhas;
          return linhas.filter(function (l) { return l.operacao === chave; });
@@ -752,6 +769,7 @@
          var anoAntRef = addAnos(hoje, -1);
          var mAnoIni = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth(), 1));
          var mAnoFim = iso(anoAntRef);
+         var mAnoTotalFim = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth() + 1, 0));
 
       Promise.all([
               buscar(d0, d0), buscar(dSemanaAnt, dSemanaAnt), buscar(dMesAnt, dMesAnt), buscar(dAnoAnt, dAnoAnt),
@@ -760,7 +778,8 @@
               buscar(sAntAntIni, sAntAntFim), buscar(sAntMesIni, sAntMesFim), buscar(sAntAnoIni, sAntAnoFim),
               buscar(focoIni, sFim),
               buscar(dOntem, dOntem), buscar(dOntemSemanaAnt, dOntemSemanaAnt),
-              buscar(dOntemMesAnt, dOntemMesAnt), buscar(dOntemAnoAnt, dOntemAnoAnt)
+              buscar(dOntemMesAnt, dOntemMesAnt), buscar(dOntemAnoAnt, dOntemAnoAnt),
+              buscarResumoDiario(mAnoIni, mAnoTotalFim)
             ]).then(function (r) {
               var dHoje = r[0], dSemanaAnt = r[1], dMes = r[2], dAno = r[3];
               var wAtual = r[4], wAnt = r[5], wMes = r[6], wAno = r[7];
@@ -769,6 +788,7 @@
               var wFoco = r[14];
               var linhasOntem = r[15], linhasOntemSemanaAnt = r[16];
               var linhasOntemMesAnt = r[17], linhasOntemAnoAnt = r[18];
+              var resumoAnoAnterior = r[19];
               var dadosAnteriores = window.DATA || {};
               function unidade(chave) {
                         var fHoje = filtrar(dHoje, chave);
@@ -830,7 +850,16 @@
               };
               var diasDec = hoje.getDate();
               var diasMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+              function rotuloMesAno(d) {
+                        return d.toLocaleDateString("pt-BR", {
+                              month: "short", year: "numeric"
+                        }).replace(".", "").replace(" de ", "/").toUpperCase();
+              }
               function fech(chave) {
+                        var resumoUnidade = filtrar(resumoAnoAnterior, chave);
+                        var fatAnoAnteriorTotal = resumoUnidade.reduce(function (s, l) {
+                              return s + Number(l.faturamento || 0);
+                        }, 0);
                         return {
                                     fatAcumulado: somaFat(filtrar(mAtual, chave)),
                                     diasDecorridos: diasDec,
@@ -838,7 +867,11 @@
                                     dataCorte: fmtBR(hoje),
                                     fatMesAnterior: somaFat(filtrar(mAnt, chave)) || null,
                                     fatAnoAnterior: somaFat(filtrar(mAno, chave)),
-                                    anoAnteriorLabel: "mesmo periodo " + (hoje.getFullYear() - 1)
+                                    anoAnteriorLabel: "mesmo periodo " + (hoje.getFullYear() - 1),
+                                    fatAnoAnteriorTotal: resumoUnidade.length ? fatAnoAnteriorTotal : null,
+                                    anoAnteriorTotalLabel: rotuloMesAno(anoAntRef) + " (mês completo)",
+                                    mesAnteriorLabel: rotuloMesAno(mesAntRef),
+                                    mesAtualLabel: rotuloMesAno(hoje)
                         };
               }
               window.FECHAMENTO = {
@@ -1561,14 +1594,23 @@ function renderRunrate(){
   }
   if(label) label.textContent = 'PROJEÇÃO DE FECHAMENTO';
   const f = FECHAMENTO[state.unit];
+  const agora = new Date();
+  const mesAnterior = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
+  const rotuloMesAnoTela = d => d.toLocaleDateString('pt-BR', {
+    month:'short', year:'numeric'
+  }).replace('.', '').replace(' de ', '/').toUpperCase();
+  const mesAnteriorLabel = f.mesAnteriorLabel || rotuloMesAnoTela(mesAnterior);
+  const mesAtualLabel = f.mesAtualLabel || rotuloMesAnoTela(agora);
   const projecao = (f.fatAcumulado / f.diasDecorridos) * f.diasMes;
   document.getElementById('runrateValue').textContent = fmtR(projecao);
   document.getElementById('runrateBasis').textContent =
     `com base em ${fmtR(f.fatAcumulado)} até ${f.dataCorte} (${f.diasDecorridos}/${f.diasMes} dias)`;
   const linhas = [];
-  if(f.fatMesAnterior) linhas.push(`<div class="line">AGO/2026: <b>${fmtR(f.fatMesAnterior)}</b></div>`);
+  if(f.fatMesAnterior) linhas.push(`<div class="line">${mesAnteriorLabel} (mesmo período): <b>${fmtR(f.fatMesAnterior)}</b></div>`);
   linhas.push(`<div class="line">${f.anoAnteriorLabel}: <b>${fmtR(f.fatAnoAnterior)}</b></div>`);
-  linhas.push(`<div class="line" style="margin-top:2px">SET/2026 (projeção): <b>${fmtR(projecao)}</b></div>`);
+  if(f.fatAnoAnteriorTotal!==null && f.fatAnoAnteriorTotal!==undefined)
+    linhas.push(`<div class="line">${f.anoAnteriorTotalLabel}: <b>${fmtR(f.fatAnoAnteriorTotal)}</b></div>`);
+  linhas.push(`<div class="line" style="margin-top:2px">${mesAtualLabel} (projeção): <b>${fmtR(projecao)}</b></div>`);
   document.getElementById('runrateCompare').innerHTML = linhas.join('');
 }
 
