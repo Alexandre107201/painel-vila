@@ -855,7 +855,7 @@
                         };
               }
 
-                          window.DATA = {
+              window.DATA = {
                                     fit: unidade("vila_fit"),
                                     gourmet: unidade("vila_gourmet"),
                                     ambas: unidade("ambas")
@@ -1020,6 +1020,27 @@
          return "vila_fit";
    }
 
+   function codigoUnidadeTeknisa(unidade) {
+         var encontrado = String(unidade || "").match(/(?:^|\D)(000[1-3])(?:\D|$)/);
+         return encontrado ? encontrado[1] : null;
+   }
+
+   function validarUnidadesObrigatorias(linhas) {
+         var esperadas = ["0001", "0002", "0003"];
+         var resumo = {};
+         esperadas.forEach(function (codigo) { resumo[codigo] = { itens: 0, valor: 0 }; });
+         linhas.forEach(function (linha) {
+               var codigo = codigoUnidadeTeknisa(linha.unidade);
+               if (!codigo || !resumo[codigo]) return;
+               resumo[codigo].itens += 1;
+               resumo[codigo].valor += Number(linha.valor_total || 0);
+         });
+         return {
+               resumo: resumo,
+               faltantes: esperadas.filter(function (codigo) { return resumo[codigo].itens === 0; })
+         };
+   }
+
    function metadadosVenda(valor) {
          var texto = String(valor || "");
          function trecho(expressao) {
@@ -1076,7 +1097,7 @@
                var caixa = col.caixa >= 0 ? String(linha[col.caixa] || "").trim() : infoVenda.caixa;
                saida.push({
                      operacao: operacaoDaLinha(unidade, caixa),
-                     unidade: unidade || "0002 - VILA FIT",
+                     unidade: unidade || "UNIDADE NÃO IDENTIFICADA",
                      caixa: caixa || null,
                      nr_venda: venda,
                      data: data,
@@ -1090,6 +1111,12 @@
                });
          }
          if (!saida.length) throw new Error("Nenhuma venda válida foi encontrada no arquivo.");
+         var ocorrencias = {};
+         saida.forEach(function (item) {
+               var chave = [item.operacao, item.unidade, item.nr_venda, item.codigo, item.data, item.quantidade, item.valor_total].join("|");
+               ocorrencias[chave] = (ocorrencias[chave] || 0) + 1;
+               item.sequencia_item = ocorrencias[chave];
+         });
          return saida;
    }
 
@@ -1143,11 +1170,25 @@
                var datas = linhasImportacao.map(function (l) { return l.data; }).sort();
                var fit = linhasImportacao.filter(function (l) { return l.operacao === "vila_fit"; }).length;
                var gourmet = linhasImportacao.length - fit;
+               var validacaoUnidades = validarUnidadesObrigatorias(linhasImportacao);
+               var nomesUnidades = { "0001": "Vila Gourmet", "0002": "Vila Fit", "0003": "Vila Fit Alimentação" };
+               var linhasUnidades = ["0001", "0002", "0003"].map(function (codigo) {
+                     var item = validacaoUnidades.resumo[codigo];
+                     return codigo + " – " + nomesUnidades[codigo] + ": " + item.itens.toLocaleString("pt-BR") +
+                           " itens · " + item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+               });
                importSummary.innerHTML = "<b>" + linhasImportacao.length.toLocaleString("pt-BR") + " itens validados</b><br>" +
                      "Período: " + datas[0].split("-").reverse().join("/") + " a " + datas[datas.length - 1].split("-").reverse().join("/") + "<br>" +
-                     "Vila Fit: " + fit.toLocaleString("pt-BR") + " · Vila Gourmet: " + gourmet.toLocaleString("pt-BR");
-               confirmImport.disabled = false;
-               definirStatus("Confira o resumo e clique em “Importar agora”.", "ok");
+                     "Vila Fit: " + fit.toLocaleString("pt-BR") + " · Vila Gourmet: " + gourmet.toLocaleString("pt-BR") + "<br><br>" +
+                     linhasUnidades.join("<br>");
+               if (validacaoUnidades.faltantes.length) {
+                     confirmImport.disabled = true;
+                     definirStatus("IMPORTAÇÃO BLOQUEADA: faltam as unidades " + validacaoUnidades.faltantes.join(", ") +
+                           ". Exporte novamente o relatório TEKNISA com 0001, 0002 e 0003 selecionadas.", "error");
+               } else {
+                     confirmImport.disabled = false;
+                     definirStatus("As unidades 0001, 0002 e 0003 foram conferidas. Clique em “Importar agora”.", "ok");
+               }
          }).catch(function (erro) {
                linhasImportacao = [];
                importSummary.textContent = "";
@@ -1168,7 +1209,7 @@
          lotes.reduce(function (fila, lote, indice) {
                return fila.then(function () {
                      definirStatus("Importando lote " + (indice + 1) + " de " + lotes.length + "…");
-                     return fetch(SUPABASE_URL + "/rest/v1/vendas_teknisa?on_conflict=nr_venda,codigo,data,quantidade,valor_total", {
+                     return fetch(SUPABASE_URL + "/rest/v1/vendas_teknisa?on_conflict=operacao,unidade,nr_venda,codigo,data,quantidade,valor_total,sequencia_item", {
                            method: "POST",
                            headers: {
                                  apikey: SUPABASE_ANON_KEY,
@@ -1636,7 +1677,10 @@ function renderRunrate(){
     `com base em ${fmtR(f.fatAcumulado)} até ${f.dataCorte} (${f.diasDecorridos}/${f.diasMes} dias)`;
   const linhas = [];
   if(f.fatMesAnterior) linhas.push(`<div class="line">${mesAnteriorLabel} (mesmo período): <b>${fmtR(f.fatMesAnterior)}</b></div>`);
-  linhas.push(`<div class="line">${f.anoAnteriorLabel}: <b>${fmtR(f.fatAnoAnterior)}</b></div>`);
+  if(f.fatAnoAnterior!==null && f.fatAnoAnterior!==undefined)
+    linhas.push(`<div class="line">${f.anoAnteriorLabel}: <b>${fmtR(f.fatAnoAnterior)}</b></div>`);
+  else
+    linhas.push('<div class="line">Comparativo anual: <b>sem histórico disponível</b></div>');
   if(f.fatAnoAnteriorTotal!==null && f.fatAnoAnteriorTotal!==undefined)
     linhas.push(`<div class="line">${f.anoAnteriorTotalLabel}: <b>${fmtR(f.fatAnoAnteriorTotal)}</b></div>`);
   linhas.push(`<div class="line" style="margin-top:2px">${mesAtualLabel} (projeção): <b>${fmtR(projecao)}</b></div>`);
