@@ -783,7 +783,7 @@
          // Projeções e comparações mensais usam somente dias encerrados. Se já
          // houver vendas de hoje, hoje continua visível no botão "Hoje", mas
          // não entra no fechamento até o dia terminar.
-         var corteFechamento = ultimaImportacao && ultimaImportacao.dataObj < hoje
+         var corteFechamento = ultimaImportacao && iso(ultimaImportacao.dataObj) < d0
                ? ultimaImportacao.dataObj
                : ontem;
          var temDiasFechadosNoMes = corteFechamento.getFullYear() === hoje.getFullYear() &&
