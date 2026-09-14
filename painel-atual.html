@@ -818,6 +818,11 @@
          var mAnoIni = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth(), 1));
          var mAnoFim = iso(anoAntRef);
          var mAnoTotalFim = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth() + 1, 0));
+         // Agosto/2026 é um período fechado e independente do mês corrente.
+         // Carregamos também julho/2026 e agosto/2025 para as comparações.
+         var agoIni = "2026-08-01", agoFim = "2026-08-31";
+         var julIni = "2026-07-01", julFim = "2026-07-31";
+         var agoAnoIni = "2025-08-01", agoAnoFim = "2025-08-31";
 
       // Primeiro traz apenas Hoje e Ontem. As consultas mais pesadas de semana,
       // mês, fechamento e produtos foco começam depois, sem bloquear esses dias.
@@ -879,7 +884,8 @@
                     buscar(sIni, sFim), buscar(sAntIni, sAntFim), buscar(sMesIni, sMesFim), buscar(sAnoIni, sAnoFim),
                     buscar(mIni, mFim), buscar(mAntIni, mAntFim), buscar(mAnoIni, mAnoFim),
                     buscar(sAntAntIni, sAntAntFim), buscar(sAntMesIni, sAntMesFim), buscar(sAntAnoIni, sAntAnoFim),
-                    buscar(focoIni, sFim), buscarResumoDiario(mAnoIni, mAnoTotalFim)
+                    buscar(focoIni, sFim), buscarResumoDiario(mAnoIni, mAnoTotalFim),
+                    buscar(agoIni, agoFim), buscar(julIni, julFim), buscar(agoAnoIni, agoAnoFim)
               ]).then(function (restante) {
                     return { prioridade: prioridade, restante: restante };
               });
@@ -892,6 +898,7 @@
               var mAtual = r[4], mAnt = r[5], mAno = r[6];
               var wAntAnt = r[7], wAntMes = r[8], wAntAno = r[9];
               var wFoco = r[10], resumoAnoAnterior = r[11];
+              var agosto2026 = r[12], julho2026 = r[13], agosto2025 = r[14];
               var corteFoco = ultimaImportacao && ultimaImportacao.dataObj >= segAtual && ultimaImportacao.dataObj <= hoje
                     ? ultimaImportacao.dataObj
                     : hoje;
@@ -904,6 +911,9 @@
                         var fSem = filtrar(wAtual, chave);
                         var fMes = filtrar(mAtual, chave);
                         var fOntem = filtrar(linhasOntem, chave);
+                        var fAgo = filtrar(agosto2026, chave);
+                        var fJul = filtrar(julho2026, chave);
+                        var fAgoAno = filtrar(agosto2025, chave);
                         var chaveTela = chave === "vila_fit" ? "fit" : chave === "vila_gourmet" ? "gourmet" : "ambas";
                         var anterior = dadosAnteriores[chaveTela] || {};
                         var dadosHoje = bloco(fHoje, fHoje.length
@@ -936,11 +946,15 @@
                                                   mesAnterior: pct(somaFat(fMes), somaFat(filtrar(mAnt, chave))),
                                                   anoAnterior: pct(somaFat(fMes), somaFat(filtrar(mAno, chave)))
                                     }),
-                                    agosto: anterior.agosto,
+                                    agosto: bloco(fAgo, "Agosto/2026 (mês fechado)", {
+                                                  anterior: pct(somaFat(fAgo), somaFat(fJul)),
+                                                  mesAnterior: pct(somaFat(fAgo), somaFat(fJul)),
+                                                  anoAnterior: pct(somaFat(fAgo), somaFat(fAgoAno))
+                                    }),
                                     heat: heat(fMes),
                                     matrix: matriz(fMes),
-                                    heatAgosto: anterior.heatAgosto,
-                                    matrixAgosto: anterior.matrixAgosto
+                                    heatAgosto: heat(fAgo),
+                                    matrixAgosto: matriz(fAgo)
                         };
               }
 
