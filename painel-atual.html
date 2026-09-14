@@ -1065,6 +1065,15 @@
                resumo[codigo].valor += Number(linha.valor_total || 0);
                resumo[codigo].presente = true;
          });
+         var relatorioIntegrado = resumo["0002"].presente;
+         if (relatorioIntegrado) {
+               ["0001", "0003"].forEach(function (codigo) {
+                     if (!resumo[codigo].presente) {
+                           resumo[codigo].presente = true;
+                           resumo[codigo].integradaSemVendas = true;
+                     }
+               });
+         }
          return {
                resumo: resumo,
                faltantes: esperadas.filter(function (codigo) { return !resumo[codigo].presente; })
@@ -1206,7 +1215,8 @@
                      var item = validacaoUnidades.resumo[codigo];
                      return codigo + " – " + nomesUnidades[codigo] + ": " + item.itens.toLocaleString("pt-BR") +
                            " itens · " + item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) +
-                           (item.presente && item.itens === 0 ? " · unidade selecionada, sem vendas" : "");
+                           (item.integradaSemVendas ? " · integrada à 0002, sem vendas próprias" :
+                           (item.presente && item.itens === 0 ? " · unidade selecionada, sem vendas" : ""));
                });
                importSummary.innerHTML = "<b>" + linhasImportacao.length.toLocaleString("pt-BR") + " itens validados</b><br>" +
                      "Período: " + datas[0].split("-").reverse().join("/") + " a " + datas[datas.length - 1].split("-").reverse().join("/") + "<br>" +
