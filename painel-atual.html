@@ -796,24 +796,79 @@
          var mAnoFim = iso(anoAntRef);
          var mAnoTotalFim = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth() + 1, 0));
 
+      // Primeiro traz apenas Hoje e Ontem. As consultas mais pesadas de semana,
+      // mês, fechamento e produtos foco começam depois, sem bloquear esses dias.
       Promise.all([
               buscar(d0, d0), buscar(dSemanaAnt, dSemanaAnt), buscar(dMesAnt, dMesAnt), buscar(dAnoAnt, dAnoAnt),
-              buscar(sIni, sFim), buscar(sAntIni, sAntFim), buscar(sMesIni, sMesFim), buscar(sAnoIni, sAnoFim),
-              buscar(mIni, mFim), buscar(mAntIni, mAntFim), buscar(mAnoIni, mAnoFim),
-              buscar(sAntAntIni, sAntAntFim), buscar(sAntMesIni, sAntMesFim), buscar(sAntAnoIni, sAntAnoFim),
-              buscar(focoIni, sFim),
               buscar(dOntem, dOntem), buscar(dOntemSemanaAnt, dOntemSemanaAnt),
-              buscar(dOntemMesAnt, dOntemMesAnt), buscar(dOntemAnoAnt, dOntemAnoAnt),
-              buscarResumoDiario(mAnoIni, mAnoTotalFim)
-            ]).then(function (r) {
-              var dHoje = r[0], dSemanaAnt = r[1], dMes = r[2], dAno = r[3];
-              var wAtual = r[4], wAnt = r[5], wMes = r[6], wAno = r[7];
-              var mAtual = r[8], mAnt = r[9], mAno = r[10];
-              var wAntAnt = r[11], wAntMes = r[12], wAntAno = r[13];
-              var wFoco = r[14];
-              var linhasOntem = r[15], linhasOntemSemanaAnt = r[16];
-              var linhasOntemMesAnt = r[17], linhasOntemAnoAnt = r[18];
-              var resumoAnoAnterior = r[19];
+              buscar(dOntemMesAnt, dOntemMesAnt), buscar(dOntemAnoAnt, dOntemAnoAnt)
+            ]).then(function (prioridade) {
+              var dHoje = prioridade[0], diaSemanaAnt = prioridade[1], diaMesAnt = prioridade[2], diaAnoAnt = prioridade[3];
+              var linhasOntem = prioridade[4], linhasOntemSemanaAnt = prioridade[5];
+              var linhasOntemMesAnt = prioridade[6], linhasOntemAnoAnt = prioridade[7];
+              var dadosAnteriores = window.DATA || {};
+
+              function unidadePrioritaria(chave) {
+                    var chaveTela = chave === "vila_fit" ? "fit" : chave === "vila_gourmet" ? "gourmet" : "ambas";
+                    var anterior = dadosAnteriores[chaveTela] || {};
+                    var fHoje = filtrar(dHoje, chave);
+                    var corteHoje = horaMaxima(fHoje);
+                    var fOntem = filtrar(linhasOntem, chave);
+                    var dadosHoje = bloco(fHoje, fHoje.length
+                          ? "Hoje - " + fmtBR(hoje) + (corteHoje ? " (parcial até " + corteHoje.slice(0, 5) + ")" : "")
+                          : "Hoje - " + fmtBR(hoje) + " (aguardando importação)", {
+                                anterior: fHoje.length ? pct(somaFat(fHoje), somaFat(ateHora(filtrar(diaSemanaAnt, chave), corteHoje))) : null,
+                                mesAnterior: fHoje.length ? pct(somaFat(fHoje), somaFat(filtrar(diaMesAnt, chave))) : null,
+                                anoAnterior: fHoje.length ? pct(somaFat(fHoje), somaFat(ateHora(filtrar(diaAnoAnt, chave), corteHoje))) : null
+                    });
+                    dadosHoje.semDados = !fHoje.length;
+                    anterior.hoje = dadosHoje;
+                    anterior.ontem = bloco(fOntem, "Ontem - " + fmtBR(ontem) + " (dia fechado)", {
+                          anterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemSemanaAnt, chave))),
+                          mesAnterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemMesAnt, chave))),
+                          anoAnterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemAnoAnt, chave)))
+                    });
+                    return anterior;
+              }
+
+              window.DATA = {
+                    fit: unidadePrioritaria("vila_fit"),
+                    gourmet: unidadePrioritaria("vila_gourmet"),
+                    ambas: unidadePrioritaria("ambas")
+              };
+              document.querySelectorAll('[data-period="ontem"]').forEach(function (btn) {
+                    btn.disabled = false;
+                    btn.title = "Resultado do dia anterior";
+              });
+              var notaPrioritaria = document.getElementById("dataSourceNote");
+              if (notaPrioritaria) {
+                    var ultimaDisponivel = ultimaImportacao
+                          ? fmtBR(ultimaImportacao.dataObj) + (ultimaImportacao.hora ? " até " + ultimaImportacao.hora.slice(0, 5) : "")
+                          : "nenhum dado importado";
+                    notaPrioritaria.textContent = !dHoje.length
+                          ? "AGUARDANDO IMPORTAÇÃO DE HOJE · últimos dados disponíveis: " + ultimaDisponivel
+                          : "DADOS AO VIVO · atualizado em " + new Date().toLocaleString("pt-BR");
+                    notaPrioritaria.style.color = !dHoje.length ? "var(--gourmet)" : "";
+              }
+              if (window.renderAll) window.renderAll();
+
+              return Promise.all([
+                    buscar(sIni, sFim), buscar(sAntIni, sAntFim), buscar(sMesIni, sMesFim), buscar(sAnoIni, sAnoFim),
+                    buscar(mIni, mFim), buscar(mAntIni, mAntFim), buscar(mAnoIni, mAnoFim),
+                    buscar(sAntAntIni, sAntAntFim), buscar(sAntMesIni, sAntMesFim), buscar(sAntAnoIni, sAntAnoFim),
+                    buscar(focoIni, sFim), buscarResumoDiario(mAnoIni, mAnoTotalFim)
+              ]).then(function (restante) {
+                    return { prioridade: prioridade, restante: restante };
+              });
+            }).then(function (pacote) {
+              var prioridade = pacote.prioridade, r = pacote.restante;
+              var dHoje = prioridade[0], dSemanaAnt = prioridade[1], dMes = prioridade[2], dAno = prioridade[3];
+              var linhasOntem = prioridade[4], linhasOntemSemanaAnt = prioridade[5];
+              var linhasOntemMesAnt = prioridade[6], linhasOntemAnoAnt = prioridade[7];
+              var wAtual = r[0], wAnt = r[1], wMes = r[2], wAno = r[3];
+              var mAtual = r[4], mAnt = r[5], mAno = r[6];
+              var wAntAnt = r[7], wAntMes = r[8], wAntAno = r[9];
+              var wFoco = r[10], resumoAnoAnterior = r[11];
               var corteFoco = ultimaImportacao && ultimaImportacao.dataObj >= segAtual && ultimaImportacao.dataObj <= hoje
                     ? ultimaImportacao.dataObj
                     : hoje;
