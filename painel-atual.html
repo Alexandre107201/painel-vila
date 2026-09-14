@@ -780,12 +780,12 @@
    function carregarDados(hoje, ultimaImportacao) {
          var d0 = iso(hoje);
          var ontem = addDias(hoje, -1);
-         // Projeções e comparações mensais usam somente dias encerrados. Se já
-         // houver vendas de hoje, hoje continua visível no botão "Hoje", mas
-         // não entra no fechamento até o dia terminar.
-         var corteFechamento = ultimaImportacao && iso(ultimaImportacao.dataObj) < d0
+         // Projeções e comparações mensais avançam até a última data importada.
+         // Assim, ao importar o relatório do dia 20, o cálculo passa a usar
+         // 01-20 e compara com exatamente 01-20 dos períodos de referência.
+         var corteFechamento = ultimaImportacao && iso(ultimaImportacao.dataObj) <= d0
                ? ultimaImportacao.dataObj
-               : ontem;
+               : hoje;
          var temDiasFechadosNoMes = corteFechamento.getFullYear() === hoje.getFullYear() &&
                corteFechamento.getMonth() === hoje.getMonth();
          var referenciaFechamento = temDiasFechadosNoMes ? corteFechamento : hoje;
@@ -1834,7 +1834,7 @@ function renderRunrate(){
   const mesAtualLabel = f.mesAtualLabel || rotuloMesAnoTela(agora);
   if(!f || !f.diasDecorridos){
     document.getElementById('runrateValue').textContent = '—';
-    document.getElementById('runrateBasis').textContent = 'aguardando o primeiro dia fechado do mês';
+    document.getElementById('runrateBasis').textContent = 'aguardando a primeira importação do mês';
     document.getElementById('runrateCompare').innerHTML = '';
     return;
   }
