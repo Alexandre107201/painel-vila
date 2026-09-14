@@ -458,7 +458,7 @@
     <ul class="actions-list" id="actionsList"></ul>
   </div>
 
-  <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Vila Fit = caixas 001-003/010/009/004; Vila Gourmet = caixas 005-008. Semana atual mostra de segunda-feira até a última data importada; Semana anterior mostra a última semana completa, de segunda a domingo. CMV permanece indisponível porque este relatório não traz custo por produto.</div>
+  <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Na unidade integrada 0002: Vila Gourmet = caixas 005-008 e 010; os demais caixas = Vila Fit. A unidade histórica 0001 permanece Vila Gourmet. Semana atual mostra de segunda-feira até a última data importada; Semana anterior mostra a última semana completa, de segunda a domingo. CMV permanece indisponível porque este relatório não traz custo por produto.</div>
 </div>
 
 <script>
@@ -780,6 +780,15 @@
    function carregarDados(hoje, ultimaImportacao) {
          var d0 = iso(hoje);
          var ontem = addDias(hoje, -1);
+         // Projeções e comparações mensais usam somente dias encerrados. Se já
+         // houver vendas de hoje, hoje continua visível no botão "Hoje", mas
+         // não entra no fechamento até o dia terminar.
+         var corteFechamento = ultimaImportacao && ultimaImportacao.dataObj < hoje
+               ? ultimaImportacao.dataObj
+               : ontem;
+         var temDiasFechadosNoMes = corteFechamento.getFullYear() === hoje.getFullYear() &&
+               corteFechamento.getMonth() === hoje.getMonth();
+         var referenciaFechamento = temDiasFechadosNoMes ? corteFechamento : hoje;
          var dOntem = iso(ontem);
          var dOntemSemanaAnt = iso(addDias(ontem, -7));
          var dOntemMesAnt = iso(addMeses(ontem, -1));
@@ -800,11 +809,12 @@
          var domAnterior = addDias(segAtual, -1);
          var sAntMesIni = iso(addMeses(segAnterior, -1)), sAntMesFim = iso(addMeses(domAnterior, -1));
          var sAntAnoIni = iso(addAnos(segAnterior, -1)), sAntAnoFim = iso(addAnos(domAnterior, -1));
-         var mIni = iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)), mFim = d0;
-         var mesAntRef = addMeses(hoje, -1);
+         var mIni = iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+         var mFim = temDiasFechadosNoMes ? iso(corteFechamento) : d0;
+         var mesAntRef = addMeses(referenciaFechamento, -1);
          var mAntIni = iso(new Date(mesAntRef.getFullYear(), mesAntRef.getMonth(), 1));
          var mAntFim = iso(mesAntRef);
-         var anoAntRef = addAnos(hoje, -1);
+         var anoAntRef = addAnos(referenciaFechamento, -1);
          var mAnoIni = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth(), 1));
          var mAnoFim = iso(anoAntRef);
          var mAnoTotalFim = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth() + 1, 0));
@@ -944,7 +954,7 @@
                     gourmet: historicoFoco(wFoco, "vila_gourmet", segAtual, corteFoco),
                     ambas: historicoFoco(wFoco, "ambas", segAtual, corteFoco)
               };
-              var diasDec = hoje.getDate();
+              var diasDec = temDiasFechadosNoMes ? corteFechamento.getDate() : 0;
               var diasMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
               function rotuloMesAno(d) {
                         return d.toLocaleDateString("pt-BR", {
@@ -960,10 +970,10 @@
                                     fatAcumulado: somaFat(filtrar(mAtual, chave)),
                                     diasDecorridos: diasDec,
                                     diasMes: diasMes,
-                                    dataCorte: fmtBR(hoje),
+                                    dataCorte: temDiasFechadosNoMes ? fmtBR(corteFechamento) : "—",
                                     fatMesAnterior: somaFat(filtrar(mAnt, chave)) || null,
                                     fatAnoAnterior: somaFat(filtrar(mAno, chave)),
-                                    anoAnteriorLabel: "mesmo periodo " + (hoje.getFullYear() - 1),
+                                    anoAnteriorLabel: "mesmo período " + (hoje.getFullYear() - 1) + " (até " + (temDiasFechadosNoMes ? fmtBR(anoAntRef) : "—") + ")",
                                     fatAnoAnteriorTotal: resumoUnidade.length ? fatAnoAnteriorTotal : null,
                                     anoAnteriorTotalLabel: rotuloMesAno(anoAntRef) + " (mês completo)",
                                     mesAnteriorLabel: rotuloMesAno(mesAntRef),
@@ -1094,8 +1104,8 @@
          var unidadeNormalizada = normalizarProduto(unidade);
          var digitos = String(caixa || "").match(/\d+/g);
          var numeroCaixa = digitos && digitos.length ? Number(digitos[digitos.length - 1]) : null;
-         if (numeroCaixa >= 5 && numeroCaixa <= 8) return "vila_gourmet";
          if (unidadeNormalizada.indexOf("0001") >= 0 || unidadeNormalizada.indexOf("GOURMET") >= 0) return "vila_gourmet";
+         if ((numeroCaixa >= 5 && numeroCaixa <= 8) || numeroCaixa === 10) return "vila_gourmet";
          return "vila_fit";
    }
 
@@ -1822,6 +1832,12 @@ function renderRunrate(){
   }).replace('.', '').replace(' de ', '/').toUpperCase();
   const mesAnteriorLabel = f.mesAnteriorLabel || rotuloMesAnoTela(mesAnterior);
   const mesAtualLabel = f.mesAtualLabel || rotuloMesAnoTela(agora);
+  if(!f || !f.diasDecorridos){
+    document.getElementById('runrateValue').textContent = '—';
+    document.getElementById('runrateBasis').textContent = 'aguardando o primeiro dia fechado do mês';
+    document.getElementById('runrateCompare').innerHTML = '';
+    return;
+  }
   const projecao = (f.fatAcumulado / f.diasDecorridos) * f.diasMes;
   document.getElementById('runrateValue').textContent = fmtR(projecao);
   document.getElementById('runrateBasis').textContent =
