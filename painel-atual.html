@@ -192,13 +192,13 @@
   /* rankings */
   .rankings-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
   .rank-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;}
-  .rank-item{display:grid;grid-template-columns:26px minmax(0,1fr) 86px 100px;align-items:center;gap:10px;padding:7px 6px;border-radius:7px;}
+  .rank-item{display:grid;grid-template-columns:26px minmax(0,1fr) 82px 96px 100px;align-items:center;gap:8px;padding:7px 6px;border-radius:7px;}
   .rank-item:hover{background:var(--surface-2);}
   .rank-idx{width:20px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-3);}
   .rank-name{font-size:13px;min-width:0;}
-  .rank-qty,.rank-value{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-2);white-space:nowrap;}
+  .rank-qty,.rank-unit-value,.rank-value{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-2);white-space:nowrap;}
   .rank-value{color:var(--text);font-weight:600;}
-  .rank-columns{display:grid;grid-template-columns:26px minmax(0,1fr) 86px 100px;gap:10px;padding:0 6px 7px;border-bottom:1px solid var(--border-soft);font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);}
+  .rank-columns{display:grid;grid-template-columns:26px minmax(0,1fr) 82px 96px 100px;gap:8px;padding:0 6px 7px;border-bottom:1px solid var(--border-soft);font-size:9px;letter-spacing:.35px;text-transform:uppercase;color:var(--text-3);}
   .rank-columns span:nth-child(n+3){text-align:right;}
 
   /* produtos foco */
@@ -281,9 +281,9 @@
   @media (max-width:560px){
     .kpi-row{grid-template-columns:1fr;}
     .matrix-grid{grid-template-columns:1fr;}
-    .rank-item,.rank-columns{grid-template-columns:22px minmax(0,1fr) 70px 88px;gap:6px;}
+    .rank-item,.rank-columns{grid-template-columns:22px minmax(0,1fr) 62px 72px 80px;gap:5px;}
     .rank-name{font-size:11.5px;}
-    .rank-qty,.rank-value{font-size:10.5px;}
+    .rank-qty,.rank-unit-value,.rank-value{font-size:9.5px;}
   }
 </style>
 <link rel="manifest" href="manifest.json">
@@ -394,12 +394,12 @@
   <div class="rankings-row">
     <div class="panel">
       <div class="panel-head"><h2>Top 10 maior faturamento</h2></div>
-      <div class="rank-columns"><span>#</span><span>Produto</span><span>Quantidade</span><span>Faturamento</span></div>
+      <div class="rank-columns"><span>#</span><span>Produto</span><span>Quantidade</span><span>Valor médio</span><span>Total</span></div>
       <ol class="rank-list rank-list--up" id="topList"></ol>
     </div>
     <div class="panel">
       <div class="panel-head"><h2>Top 10 menor faturamento</h2></div>
-      <div class="rank-columns"><span>#</span><span>Produto</span><span>Quantidade</span><span>Faturamento</span></div>
+      <div class="rank-columns"><span>#</span><span>Produto</span><span>Quantidade</span><span>Valor médio</span><span>Total</span></div>
       <ol class="rank-list rank-list--down" id="bottomList"></ol>
     </div>
   </div>
@@ -1623,11 +1623,18 @@ function renderRankings(){
     return quantidade.toLocaleString('pt-BR',{minimumFractionDigits:casas,maximumFractionDigits:casas})+' '+unidade;
   };
   const faturamentoRanking = it=>it.length>2 ? fmtR(Number(it[2] || 0)) : '—';
+  const valorMedioRanking = it=>{
+    const quantidade = Number(it[1] || 0);
+    if(!quantidade) return '—';
+    const unidade = it[3] || (Math.abs(quantidade-Math.round(quantidade))>0.000001 ? 'kg' : 'un');
+    return fmtR(Number(it[2] || 0)/quantidade)+'/'+unidade;
+  };
   document.getElementById('topList').innerHTML = d.top.map((it,i)=>`
     <li class="rank-item">
       <span class="rank-idx num">${i+1}</span>
       <span class="rank-name">${it[0]}</span>
       <span class="rank-qty num">${quantidadeRanking(it)}</span>
+      <span class="rank-unit-value num">${valorMedioRanking(it)}</span>
       <span class="rank-value num">${faturamentoRanking(it)}</span>
     </li>`).join('');
   document.getElementById('bottomList').innerHTML = d.bottom.map((it,i)=>`
@@ -1635,6 +1642,7 @@ function renderRankings(){
       <span class="rank-idx num">${i+1}</span>
       <span class="rank-name">${it[0]}</span>
       <span class="rank-qty num">${quantidadeRanking(it)}</span>
+      <span class="rank-unit-value num">${valorMedioRanking(it)}</span>
       <span class="rank-value num">${faturamentoRanking(it)}</span>
     </li>`).join('');
 }
