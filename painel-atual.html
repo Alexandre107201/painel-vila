@@ -403,7 +403,7 @@
   <div class="panel focus-panel">
     <div class="panel-head">
       <h2>Ranking semanal dos produtos foco</h2>
-      <span class="panel-note">Do melhor para o pior pela variação % · atual parcial compara os mesmos dias · 4 fechadas comparam semanas completas</span>
+      <span class="panel-note">Ranking pela variação % da última semana fechada · semana atual aparece apenas para acompanhamento</span>
     </div>
     <div class="focus-scroll">
       <table class="focus-table">
@@ -1605,8 +1605,10 @@ function renderFocus(){
     body.innerHTML = '<tr><td colspan="2" class="focus-empty">Aguardando os dados semanais…</td></tr>';
     return;
   }
+  const indiceSemanaRanking = semanas.reduce((ultimo,semana,indice)=>semana.atual ? ultimo : indice,-1);
   const variacaoProduto = idx=>{
-    const semana = semanas[semanas.length-1];
+    const semana = semanas[indiceSemanaRanking];
+    if(!semana) return null;
     const atual = Number(semana.valores[idx] || 0);
     const anterior = Number((semana.comparacaoValores || [])[idx] || 0);
     return anterior > 0 ? ((atual-anterior)/anterior)*100 : null;
@@ -1618,7 +1620,7 @@ function renderFocus(){
       if(b.variacao===null) return -1;
       return b.variacao-a.variacao || a.idx-b.idx;
     });
-  head.innerHTML = '<tr><th>Ranking · produto foco</th>' + semanas.map(s=>`<th>${s.rotulo}${s.atual?' *':''}</th>`).join('') + '<th>Total 4 fechadas</th></tr>';
+  head.innerHTML = '<tr><th>Ranking · produto foco</th>' + semanas.map((s,i)=>`<th>${s.rotulo}${i===indiceSemanaRanking?' · ranking':s.atual?' *':''}</th>`).join('') + '<th>Total 4 fechadas</th></tr>';
   body.innerHTML = produtosOrdenados.map(({produto,idx},posicao)=>{
     const valores = semanas.map(s=>Number(s.valores[idx] || 0));
     const total = valores.slice(0,-1).reduce((s,v)=>s+v,0);
