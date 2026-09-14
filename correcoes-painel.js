@@ -202,7 +202,9 @@ if (typeof renderAll === 'function') { try { renderAll(); } catch(e){} }
 // Ativa a instalação do Painel Vila como aplicativo no Android/Chrome.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./service-worker.js').catch(function (erro) {
+    navigator.serviceWorker.register('./service-worker.js?v=20260914-4', { updateViaCache: 'none' }).then(function (registro) {
+      registro.update();
+    }).catch(function (erro) {
       console.error('Falha ao instalar o Painel Vila como aplicativo.', erro);
     });
   });
