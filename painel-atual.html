@@ -1025,19 +1025,49 @@
          return encontrado ? encontrado[1] : null;
    }
 
-   function validarUnidadesObrigatorias(linhas) {
+   function unidadesSelecionadasNoRelatorio(matriz) {
+         var encontradas = {};
+         var linhaCabecalho = -1;
+         var colunaUnidade = -1;
+         for (var i = 0; i < Math.min(matriz.length, 30); i++) {
+               var cabecalho = (matriz[i] || []).map(normalizarCabecalho);
+               var candidata = localizarColuna(cabecalho, ["UNIDADE", "EMPRESA"]);
+               if (candidata >= 0 && (localizarColuna(cabecalho, ["PRODUTO", "DESCRICAO PRODUTO"]) >= 0 || localizarColuna(cabecalho, ["VENDA", "NR VENDA", "N VENDA", "NUMERO VENDA"]) >= 0)) {
+                     linhaCabecalho = i;
+                     colunaUnidade = candidata;
+                     break;
+               }
+         }
+         matriz.forEach(function (linha, indice) {
+               var valores = indice <= linhaCabecalho || linhaCabecalho < 0
+                     ? (linha || [])
+                     : (colunaUnidade >= 0 ? [linha[colunaUnidade]] : []);
+               valores.forEach(function (valor) {
+                     var texto = String(valor || "");
+                     var expressao = /(?:^|\D)(000[1-3])(?=\D|$)/g;
+                     var correspondencia;
+                     while ((correspondencia = expressao.exec(texto)) !== null) {
+                           encontradas[correspondencia[1]] = true;
+                     }
+               });
+         });
+         return encontradas;
+   }
+
+   function validarUnidadesObrigatorias(linhas, unidadesSelecionadas) {
          var esperadas = ["0001", "0002", "0003"];
          var resumo = {};
-         esperadas.forEach(function (codigo) { resumo[codigo] = { itens: 0, valor: 0 }; });
+         esperadas.forEach(function (codigo) { resumo[codigo] = { itens: 0, valor: 0, presente: !!(unidadesSelecionadas && unidadesSelecionadas[codigo]) }; });
          linhas.forEach(function (linha) {
                var codigo = codigoUnidadeTeknisa(linha.unidade);
                if (!codigo || !resumo[codigo]) return;
                resumo[codigo].itens += 1;
                resumo[codigo].valor += Number(linha.valor_total || 0);
+               resumo[codigo].presente = true;
          });
          return {
                resumo: resumo,
-               faltantes: esperadas.filter(function (codigo) { return resumo[codigo].itens === 0; })
+               faltantes: esperadas.filter(function (codigo) { return !resumo[codigo].presente; })
          };
    }
 
@@ -1170,12 +1200,13 @@
                var datas = linhasImportacao.map(function (l) { return l.data; }).sort();
                var fit = linhasImportacao.filter(function (l) { return l.operacao === "vila_fit"; }).length;
                var gourmet = linhasImportacao.length - fit;
-               var validacaoUnidades = validarUnidadesObrigatorias(linhasImportacao);
+               var validacaoUnidades = validarUnidadesObrigatorias(linhasImportacao, unidadesSelecionadasNoRelatorio(matriz));
                var nomesUnidades = { "0001": "Vila Gourmet", "0002": "Vila Fit", "0003": "Vila Fit Alimentação" };
                var linhasUnidades = ["0001", "0002", "0003"].map(function (codigo) {
                      var item = validacaoUnidades.resumo[codigo];
                      return codigo + " – " + nomesUnidades[codigo] + ": " + item.itens.toLocaleString("pt-BR") +
-                           " itens · " + item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                           " itens · " + item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) +
+                           (item.presente && item.itens === 0 ? " · unidade selecionada, sem vendas" : "");
                });
                importSummary.innerHTML = "<b>" + linhasImportacao.length.toLocaleString("pt-BR") + " itens validados</b><br>" +
                      "Período: " + datas[0].split("-").reverse().join("/") + " a " + datas[datas.length - 1].split("-").reverse().join("/") + "<br>" +
