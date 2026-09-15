@@ -120,7 +120,28 @@ function renderActions(){
       <span class="action-text">${a.text}</span>
     </li>`).join('');
 }
+// Referencia historica validada de agosto/2025.
+// Reaplica apos cada atualizacao ao vivo para impedir que o snapshot antigo
+// volte a exibir +43,9% com base incompleta.
+var AGOSTO_2025_VALIDADO = {
+  fit: 481057.72,
+  gourmet: 69912.58,
+  ambas: 550970.30
+};
+function corrigirComparativoAgosto(){
+  Object.keys(AGOSTO_2025_VALIDADO).forEach(function(unidade){
+    var agosto = DATA && DATA[unidade] && DATA[unidade].agosto;
+    var referencia = AGOSTO_2025_VALIDADO[unidade];
+    if(agosto && Number.isFinite(Number(agosto.fat)) && referencia > 0){
+      agosto.fatAnoAnteriorTotal = referencia;
+      agosto.anoAnteriorTotalLabel = 'Agosto/2025';
+      agosto.deltaAnoAnt = ((Number(agosto.fat) / referencia) - 1) * 100;
+    }
+  });
+}
+
 function renderRunrate(){
+  corrigirComparativoAgosto();
   const label = document.querySelector('.runrate-label');
   const elValor = document.getElementById('runrateValue');
   const elBase  = document.getElementById('runrateBasis');
@@ -146,6 +167,8 @@ function renderRunrate(){
     const linhas = [];
     if(Number.isFinite(d.deltaMesAnt))
       linhas.push(`<div class="line ${d.deltaMesAnt>=0?'up':'down'}">${d.deltaMesAnt>=0?'+':'-'} ${Math.abs(d.deltaMesAnt).toFixed(1).replace('.',',')}% vs JUL/2026</div>`);
+    if(Number.isFinite(d.fatAnoAnteriorTotal))
+      linhas.push(`<div class="line">Agosto/2025: <b>${fmtR(d.fatAnoAnteriorTotal)}</b></div>`);
     if(Number.isFinite(d.deltaAnoAnt))
       linhas.push(`<div class="line ${d.deltaAnoAnt>=0?'up':'down'}">${d.deltaAnoAnt>=0?'+':'-'} ${Math.abs(d.deltaAnoAnt).toFixed(1).replace('.',',')}% vs AGO/2025</div>`);
     elComp.innerHTML = linhas.join('');
@@ -196,8 +219,16 @@ function renderRunrate(){
   elComp.innerHTML = linhas.join('');
 }
 
-// Re-renderiza com as versoes corrigidas assim que o arquivo carrega.
-if (typeof renderAll === 'function') { try { renderAll(); } catch(e){} }
+// Garante a referencia correta antes de qualquer renderizacao, inclusive apos
+// a atualizacao automatica dos dados vindos do Supabase.
+if (typeof renderAll === 'function') {
+  var renderAllOriginal = renderAll;
+  renderAll = function(){
+    corrigirComparativoAgosto();
+    return renderAllOriginal();
+  };
+  try { renderAll(); } catch(e){}
+}
 
 // Ativa a instalação do Painel Vila como aplicativo no Android/Chrome.
 if ('serviceWorker' in navigator) {
