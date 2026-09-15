@@ -152,7 +152,7 @@ function corrigirFechamentoHistorico(){
     var fechamento = FECHAMENTO[unidade];
     if(!fechamento) return;
     var rotulo = String(fechamento.anoAnteriorTotalLabel || '');
-    if(/SET\\/?2025/i.test(rotulo)){
+    if(rotulo.toUpperCase().indexOf('SET') >= 0 && rotulo.indexOf('2025') >= 0){
       fechamento.fatAnoAnteriorTotal = SETEMBRO_2025_VALIDADO[unidade];
       fechamento.anoAnteriorTotalLabel = 'SET/2025 (mês completo)';
     }
