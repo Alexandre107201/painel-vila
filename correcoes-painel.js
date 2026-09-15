@@ -140,8 +140,27 @@ function corrigirComparativoAgosto(){
   });
 }
 
-function renderRunrate(){
+var SETEMBRO_2025_VALIDADO = {
+  fit: 525221.50,       // 0002 + 0003
+  gourmet: 75468.50,    // 0001
+  ambas: 600690.00
+};
+function corrigirFechamentoHistorico(){
   corrigirComparativoAgosto();
+  if(!FECHAMENTO) return;
+  Object.keys(SETEMBRO_2025_VALIDADO).forEach(function(unidade){
+    var fechamento = FECHAMENTO[unidade];
+    if(!fechamento) return;
+    var rotulo = String(fechamento.anoAnteriorTotalLabel || '');
+    if(/SET\\/?2025/i.test(rotulo)){
+      fechamento.fatAnoAnteriorTotal = SETEMBRO_2025_VALIDADO[unidade];
+      fechamento.anoAnteriorTotalLabel = 'SET/2025 (mês completo)';
+    }
+  });
+}
+
+function renderRunrate(){
+  corrigirFechamentoHistorico();
   const label = document.querySelector('.runrate-label');
   const elValor = document.getElementById('runrateValue');
   const elBase  = document.getElementById('runrateBasis');
@@ -228,7 +247,7 @@ function renderRunrate(){
 if (typeof renderAll === 'function') {
   var renderAllOriginal = renderAll;
   renderAll = function(){
-    corrigirComparativoAgosto();
+    corrigirFechamentoHistorico();
     return renderAllOriginal();
   };
   try { renderAll(); } catch(e){}
@@ -237,7 +256,7 @@ if (typeof renderAll === 'function') {
 // Ativa a instalação do Painel Vila como aplicativo no Android/Chrome.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./service-worker.js?v=20260915-2', { updateViaCache: 'none' }).then(function (registro) {
+    navigator.serviceWorker.register('./service-worker.js?v=20260915-3', { updateViaCache: 'none' }).then(function (registro) {
       registro.update();
     }).catch(function (erro) {
       console.error('Falha ao instalar o Painel Vila como aplicativo.', erro);
