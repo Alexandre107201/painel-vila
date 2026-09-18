@@ -570,11 +570,18 @@
    }
 
    function kpis(linhas) {
-         var vendas = {};
+         // Linhas novas do BI trazem CUPOM rateado entre os produtos.
+         // Linhas historicas continuam usando o numero real da venda.
+         var vendasLegado = {};
+         var qtdVendasBi = 0;
          linhas.forEach(function (l) {
-                 vendas[(l.operacao || "") + "|" + (l.data || "") + "|" + (l.nr_venda || "")] = true;
+                 if (l.cupons !== null && l.cupons !== undefined && l.cupons !== "") {
+                       qtdVendasBi += Number(l.cupons || 0);
+                 } else {
+                       vendasLegado[(l.operacao || "") + "|" + (l.data || "") + "|" + (l.nr_venda || "")] = true;
+                 }
          });
-         var qtdVendas = Object.keys(vendas).length;
+         var qtdVendas = qtdVendasBi + Object.keys(vendasLegado).length;
          var qtdItens = linhas.reduce(function (s, l) { return s + Number(l.quantidade || 0); }, 0);
          var fat = somaFat(linhas);
          return {
@@ -612,7 +619,7 @@
                  if (!l.hora) return;
                  var hh = parseInt(String(l.hora).split(":")[0], 10);
                  var idx = hh - 6;
-                 if (idx >= 0 && idx < 16) h[idx] += 1;
+                 if (idx >= 0 && idx < 16) h[idx] += (l.cupons !== null && l.cupons !== undefined && l.cupons !== "") ? Number(l.cupons || 0) : 1;
          });
          return h;
    }
@@ -627,7 +634,10 @@
                  var dt = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
                  var col = (dt.getDay() + 6) % 7;
                  for (var i = 0; i < faixas.length; i++) {
-                           if (hh >= faixas[i][0] && hh <= faixas[i][1]) { grade[i][col] += 1; break; }
+                           if (hh >= faixas[i][0] && hh <= faixas[i][1]) {
+                                 grade[i][col] += (l.cupons !== null && l.cupons !== undefined && l.cupons !== "") ? Number(l.cupons || 0) : 1;
+                                 break;
+                           }
                  }
          });
          var max = 0;
