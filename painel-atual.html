@@ -1216,7 +1216,8 @@
                var temDataSeparada = localizarColuna(teste, ["DATA"]) >= 0;
                var temVendaTeknisa = localizarColuna(teste, ["VENDA"]) >= 0;
                if ((temDataSeparada || temVendaTeknisa) && localizarColuna(teste, ["PRODUTO"]) >= 0 &&
-                   localizarColuna(teste, ["QUANTIDADE", "QTDE", "QTD"]) >= 0 && localizarColuna(teste, ["VALOR TOTAL", "VLR TOTAL", "VR TOTAL"]) >= 0) {
+                   localizarColuna(teste, ["QUANTIDADE", "QTDE", "QTD"]) >= 0 &&
+                   localizarColuna(teste, ["VALOR BRUTO", "VLR BRUTO", "VR BRUTO", "VALOR TOTAL", "VLR TOTAL", "VR TOTAL"]) >= 0) {
                      linhaCabecalho = i;
                      break;
                }
@@ -1233,7 +1234,8 @@
                codigo: localizarColuna(cab, ["CODIGO", "COD PRODUTO"]),
                qtd: localizarColuna(cab, ["QUANTIDADE", "QTDE", "QTD"]),
                unitario: localizarColuna(cab, ["VALOR UNITARIO", "VLR UNITARIO", "VR UNITARIO", "PRECO UNITARIO", "PR UNIT"]),
-               total: localizarColuna(cab, ["VALOR TOTAL", "VLR TOTAL", "VR TOTAL"]),
+               total: localizarColuna(cab, ["VALOR BRUTO", "VLR BRUTO", "VR BRUTO", "VALOR TOTAL", "VLR TOTAL", "VR TOTAL"]),
+               desconto: localizarColuna(cab, ["DESCONTO", "DESC", "VR DESC", "VLR DESC"]),
                pagamento: localizarColuna(cab, ["FORMA PAGAMENTO", "FORMA DE PAGAMENTO", "PAGAMENTO"])
          };
          if (col.venda < 0) throw new Error("O arquivo precisa conter a identificação da venda.");
@@ -1260,6 +1262,7 @@
                      quantidade: numeroBR(linha[col.qtd]),
                      valor_unitario: col.unitario >= 0 ? numeroBR(linha[col.unitario]) : 0,
                      valor_total: numeroBR(linha[col.total]),
+                     desconto: col.desconto >= 0 ? numeroBR(linha[col.desconto]) : 0,
                      forma_pagamento: col.pagamento >= 0 ? String(linha[col.pagamento] || "").trim() || null : null
                });
          }
@@ -1357,34 +1360,32 @@
          if (!sessao) { atualizarTelaImportacao(); definirStatus("Sua sessão expirou. Entre novamente.", "error"); return; }
          if (!linhasImportacao.length) return;
          confirmImport.disabled = true;
-         definirStatus("Importando " + linhasImportacao.length.toLocaleString("pt-BR") + " itens…");
-         var lotes = [];
-         for (var i = 0; i < linhasImportacao.length; i += 300) lotes.push(linhasImportacao.slice(i, i + 300));
-         var inseridos = 0;
-         lotes.reduce(function (fila, lote, indice) {
-               return fila.then(function () {
-                     definirStatus("Importando lote " + (indice + 1) + " de " + lotes.length + "…");
-                     return fetch(SUPABASE_URL + "/rest/v1/vendas_teknisa?on_conflict=operacao,unidade,nr_venda,codigo,data,quantidade,valor_total,sequencia_item", {
-                           method: "POST",
-                           headers: {
-                                 apikey: SUPABASE_ANON_KEY,
-                                 Authorization: "Bearer " + sessao.access_token,
-                                 "Content-Type": "application/json",
-                                 Prefer: "resolution=ignore-duplicates,return=representation"
-                           },
-                           body: JSON.stringify(lote)
-                     }).then(function (r) {
-                           return r.json().then(function (dados) {
-                                 if (!r.ok) throw new Error(dados.message || dados.hint || "Falha ao gravar as vendas.");
-                                 inseridos += Array.isArray(dados) ? dados.length : 0;
-                           });
-                     });
+         definirStatus("Substituindo o período com " + linhasImportacao.length.toLocaleString("pt-BR") + " itens validados…");
+         var datasImportacao = linhasImportacao.map(function (linha) { return linha.data; }).sort();
+         var inicioImportacao = datasImportacao[0];
+         var fimImportacao = datasImportacao[datasImportacao.length - 1];
+         fetch(SUPABASE_URL + "/rest/v1/rpc/replace_vendas_teknisa_periodo", {
+               method: "POST",
+               headers: {
+                     apikey: SUPABASE_ANON_KEY,
+                     Authorization: "Bearer " + sessao.access_token,
+                     "Content-Type": "application/json"
+               },
+               body: JSON.stringify({
+                     p_inicio: inicioImportacao,
+                     p_fim: fimImportacao,
+                     p_linhas: linhasImportacao
+               })
+         }).then(function (r) {
+               return r.json().then(function (dados) {
+                     if (!r.ok) throw new Error(dados.message || dados.hint || "Falha ao substituir as vendas.");
+                     return dados;
                });
-         }, Promise.resolve()).then(function () {
-               var repetidos = linhasImportacao.length - inseridos;
-               definirStatus(inseridos.toLocaleString("pt-BR") + " itens incluídos" +
-                     (repetidos ? " · " + repetidos.toLocaleString("pt-BR") + " repetidos ignorados" : "") +
-                     ". O painel foi atualizado.", "ok");
+         }).then(function (dados) {
+               var itensGravados = Number(dados && dados.itens || linhasImportacao.length);
+               definirStatus(itensGravados.toLocaleString("pt-BR") + " itens gravados · período " +
+                     inicioImportacao.split("-").reverse().join("/") + " a " + fimImportacao.split("-").reverse().join("/") +
+                     " substituído sem duplicidades. O painel foi atualizado.", "ok");
                linhasImportacao = [];
                importSummary.textContent = "";
                document.getElementById("importFile").value = "";
