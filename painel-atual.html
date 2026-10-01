@@ -330,7 +330,8 @@
         <button class="period-btn" data-period="ontem" disabled title="Carregando os dados de ontem">Ontem</button>
         <button class="period-btn" data-period="semana">Semana atual</button>
         <button class="period-btn" data-period="semana_anterior" disabled title="Carregando a última semana completa">Semana anterior</button>
-        <button class="period-btn" data-period="mes">Setembro/2026</button>
+        <button class="period-btn" data-period="mes">Mês atual</button>
+        <button class="period-btn" data-period="setembro">Setembro/2026</button>
         <button class="period-btn" data-period="agosto">Agosto/2026</button>
       </div>
       <button class="import-btn" id="openImport" type="button">Importar relatório</button>
@@ -374,6 +375,12 @@
     </div>
   </div>
 
+
+<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:20px">
+<label>De <input id="dateFrom" type="date" style="display:block;padding:8px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px"></label>
+<label>Até <input id="dateTo" type="date" style="display:block;padding:8px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px"></label>
+<button id="applyDates" class="import-btn">Aplicar período</button><span id="dateStatus" role="status" style="color:var(--bad)"></span>
+</div>
   <div class="runrate-card" id="runrateCard">
     <div class="runrate-label">Projeção de fechamento</div>
     <div class="runrate-value num" id="runrateValue">—</div>
@@ -517,32 +524,22 @@
          return addDias(d, -diff);
    }
 
-   function buscar(de, ate) {
-         var pagina = 1000;
-         function buscarPagina(offset) {
-               var url = SUPABASE_URL + "/rest/v1/vendas_teknisa?select=*&data=gte." + de +
-                     "&data=lte." + ate + "&order=id.asc&limit=" + pagina + "&offset=" + offset;
-               return fetch(url, {
-                     headers: {
-                           apikey: SUPABASE_ANON_KEY,
-                           Authorization: "Bearer " + SUPABASE_ANON_KEY
-                     }
-               }).then(function (r) {
-                     if (!r.ok) throw new Error("HTTP " + r.status);
-                     return r.json();
-               }).then(function (linhas) {
-                     if (linhas.length < pagina) return linhas;
-                     return buscarPagina(offset + pagina).then(function (proximas) {
-                           return linhas.concat(proximas);
-                     });
-               });
-         }
-         return buscarPagina(0).catch(function (e) {
-               console.error("Falha na consulta de " + de + " a " + ate + ".", e);
-               return [];
-         });
-   }
 
+   function buscar(de,ate){
+     var pagina=1000;
+     function paginaEm(offset){
+       var url=SUPABASE_URL+"/rest/v1/vendas_teknisa?select=*&data=gte."+de+"&data=lte."+ate+"&order=id.asc&limit="+pagina+"&offset="+offset;
+       return fetch(url,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY}}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();});
+     }
+     function lote(offset){
+       return Promise.all([0,1,2,3].map(function(i){return paginaEm(offset+i*pagina);})).then(function(ps){
+         var xs=[].concat.apply([],ps);
+         if(ps.some(function(p){return p.length<pagina;}))return xs;
+         return lote(offset+4*pagina).then(function(mais){return xs.concat(mais);});
+       });
+     }
+     return lote(0);
+   }
    function buscarResumoDiario(de, ate) {
          var url = SUPABASE_URL + "/rest/v1/vw_kpis_diarios?select=operacao,data,faturamento&data=gte." + de +
                "&data=lte." + ate + "&order=data.asc,operacao.asc";
@@ -789,274 +786,79 @@
          });
    }
 
-   function carregarDados(hoje, ultimaImportacao) {
-         var d0 = iso(hoje);
-         var ontem = addDias(hoje, -1);
-         // Projeções e comparações mensais avançam até a última data importada.
-         // Assim, ao importar o relatório do dia 20, o cálculo passa a usar
-         // 01-20 e compara com exatamente 01-20 dos períodos de referência.
-         var corteFechamento = ultimaImportacao && iso(ultimaImportacao.dataObj) <= d0
-               ? ultimaImportacao.dataObj
-               : hoje;
-         var temDiasFechadosNoMes = corteFechamento.getFullYear() === hoje.getFullYear() &&
-               corteFechamento.getMonth() === hoje.getMonth();
-         var referenciaFechamento = temDiasFechadosNoMes ? corteFechamento : hoje;
-         var dOntem = iso(ontem);
-         var dOntemSemanaAnt = iso(addDias(ontem, -7));
-         var dOntemMesAnt = iso(addMeses(ontem, -1));
-         var dOntemAnoAnt = iso(mesmoDiaSemanaAnoAnterior(ontem));
-         var dSemanaAnt = iso(addDias(hoje, -7));
-         var dMesAnt = iso(addMeses(hoje, -1));
-         var dAnoAnt = iso(mesmoDiaSemanaAnoAnterior(hoje));
-         var segAtual = inicioSemana(hoje);
-         var sIni = iso(segAtual), sFim = d0;
-         // Uma semana adicional alimenta a base de comparação da mais antiga
-         // das quatro semanas fechadas exibidas.
-         var focoIni = iso(addDias(segAtual, -35));
-         var sAntIni = iso(addDias(segAtual, -7)), sAntFim = iso(addDias(segAtual, -1));
-         var sAntAntIni = iso(addDias(segAtual, -14)), sAntAntFim = iso(addDias(segAtual, -8));
-         var sMesIni = iso(addMeses(segAtual, -1)), sMesFim = iso(addMeses(hoje, -1));
-         var sAnoIni = iso(addAnos(segAtual, -1)), sAnoFim = iso(addAnos(hoje, -1));
-         var segAnterior = addDias(segAtual, -7);
-         var domAnterior = addDias(segAtual, -1);
-         var sAntMesIni = iso(addMeses(segAnterior, -1)), sAntMesFim = iso(addMeses(domAnterior, -1));
-         var sAntAnoIni = iso(addAnos(segAnterior, -1)), sAntAnoFim = iso(addAnos(domAnterior, -1));
-         var mIni = iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
-         var mFim = temDiasFechadosNoMes ? iso(corteFechamento) : d0;
-         var mesAntRef = addMeses(referenciaFechamento, -1);
-         var mAntIni = iso(new Date(mesAntRef.getFullYear(), mesAntRef.getMonth(), 1));
-         var mAntFim = iso(mesAntRef);
-         var anoAntRef = addAnos(referenciaFechamento, -1);
-         var mAnoIni = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth(), 1));
-         var mAnoFim = iso(anoAntRef);
-         var mAnoTotalFim = iso(new Date(anoAntRef.getFullYear(), anoAntRef.getMonth() + 1, 0));
-         // Agosto/2026 é um período fechado e independente do mês corrente.
-         // Carregamos também julho/2026 e agosto/2025 para as comparações.
-         var agoIni = "2026-08-01", agoFim = "2026-08-31";
-         var julIni = "2026-07-01", julFim = "2026-07-31";
-         var agoAnoIni = "2025-08-01", agoAnoFim = "2025-08-31";
 
-      // Primeiro traz apenas Hoje e Ontem. As consultas mais pesadas de semana,
-      // mês, fechamento e produtos foco começam depois, sem bloquear esses dias.
-      Promise.all([
-              buscar(d0, d0), buscar(dSemanaAnt, dSemanaAnt), buscar(dMesAnt, dMesAnt), buscar(dAnoAnt, dAnoAnt),
-              buscar(dOntem, dOntem), buscar(dOntemSemanaAnt, dOntemSemanaAnt),
-              buscar(dOntemMesAnt, dOntemMesAnt), buscar(dOntemAnoAnt, dOntemAnoAnt)
-            ]).then(function (prioridade) {
-              var dHoje = prioridade[0], diaSemanaAnt = prioridade[1], diaMesAnt = prioridade[2], diaAnoAnt = prioridade[3];
-              var linhasOntem = prioridade[4], linhasOntemSemanaAnt = prioridade[5];
-              var linhasOntemMesAnt = prioridade[6], linhasOntemAnoAnt = prioridade[7];
-              var dadosAnteriores = window.DATA || {};
-
-              function unidadePrioritaria(chave) {
-                    var chaveTela = chave === "vila_fit" ? "fit" : chave === "vila_gourmet" ? "gourmet" : "ambas";
-                    var anterior = dadosAnteriores[chaveTela] || {};
-                    var fHoje = filtrar(dHoje, chave);
-                    var corteHoje = horaMaxima(fHoje);
-                    var fOntem = filtrar(linhasOntem, chave);
-                    var dadosHoje = bloco(fHoje, fHoje.length
-                          ? "Hoje - " + fmtBR(hoje) + (corteHoje ? " (parcial até " + corteHoje.slice(0, 5) + ")" : "")
-                          : "Hoje - " + fmtBR(hoje) + " (aguardando importação)", {
-                                anterior: fHoje.length ? pct(somaFat(fHoje), somaFat(ateHora(filtrar(diaSemanaAnt, chave), corteHoje))) : null,
-                                mesAnterior: fHoje.length ? pct(somaFat(fHoje), somaFat(filtrar(diaMesAnt, chave))) : null,
-                                anoAnterior: fHoje.length ? pct(somaFat(fHoje), somaFat(ateHora(filtrar(diaAnoAnt, chave), corteHoje))) : null
-                    });
-                    dadosHoje.semDados = !fHoje.length;
-                    anterior.hoje = dadosHoje;
-                    anterior.ontem = bloco(fOntem, "Ontem - " + fmtBR(ontem) + " (dia fechado)", {
-                          anterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemSemanaAnt, chave))),
-                          mesAnterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemMesAnt, chave))),
-                          anoAnterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemAnoAnt, chave)))
-                    });
-                    return anterior;
-              }
-
-              window.DATA = {
-                    fit: unidadePrioritaria("vila_fit"),
-                    gourmet: unidadePrioritaria("vila_gourmet"),
-                    ambas: unidadePrioritaria("ambas")
-              };
-              document.querySelectorAll('[data-period="ontem"]').forEach(function (btn) {
-                    btn.disabled = false;
-                    btn.title = "Resultado do dia anterior";
-              });
-              var notaPrioritaria = document.getElementById("dataSourceNote");
-              if (notaPrioritaria) {
-                    var ultimaDisponivel = ultimaImportacao
-                          ? fmtBR(ultimaImportacao.dataObj) + (ultimaImportacao.hora ? " até " + ultimaImportacao.hora.slice(0, 5) : "")
-                          : "nenhum dado importado";
-                    notaPrioritaria.textContent = !dHoje.length
-                          ? "AGUARDANDO IMPORTAÇÃO DE HOJE · últimos dados disponíveis: " + ultimaDisponivel
-                          : "DADOS AO VIVO · atualizado em " + new Date().toLocaleString("pt-BR");
-                    notaPrioritaria.style.color = !dHoje.length ? "var(--gourmet)" : "";
-              }
-              if (window.renderAll) window.renderAll();
-
-              return Promise.all([
-                    buscar(sIni, sFim), buscar(sAntIni, sAntFim), buscar(sMesIni, sMesFim), buscar(sAnoIni, sAnoFim),
-                    buscar(mIni, mFim), buscar(mAntIni, mAntFim), buscar(mAnoIni, mAnoFim),
-                    buscar(sAntAntIni, sAntAntFim), buscar(sAntMesIni, sAntMesFim), buscar(sAntAnoIni, sAntAnoFim),
-                    buscar(focoIni, sFim), buscarResumoDiario(mAnoIni, mAnoTotalFim),
-                    buscar(agoIni, agoFim), buscar(julIni, julFim), buscar(agoAnoIni, agoAnoFim)
-              ]).then(function (restante) {
-                    return { prioridade: prioridade, restante: restante };
-              });
-            }).then(function (pacote) {
-              var prioridade = pacote.prioridade, r = pacote.restante;
-              var dHoje = prioridade[0], dSemanaAnt = prioridade[1], dMes = prioridade[2], dAno = prioridade[3];
-              var linhasOntem = prioridade[4], linhasOntemSemanaAnt = prioridade[5];
-              var linhasOntemMesAnt = prioridade[6], linhasOntemAnoAnt = prioridade[7];
-              var wAtual = r[0], wAnt = r[1], wMes = r[2], wAno = r[3];
-              var mAtual = r[4], mAnt = r[5], mAno = r[6];
-              var wAntAnt = r[7], wAntMes = r[8], wAntAno = r[9];
-              var wFoco = r[10], resumoAnoAnterior = r[11];
-              var agosto2026 = r[12], julho2026 = r[13], agosto2025 = r[14];
-              var corteFoco = ultimaImportacao && ultimaImportacao.dataObj >= segAtual && ultimaImportacao.dataObj <= hoje
-                    ? ultimaImportacao.dataObj
-                    : hoje;
-              var dadosAnteriores = window.DATA || {};
-              function unidade(chave) {
-                        var fHoje = filtrar(dHoje, chave);
-                        var corteHoje = horaMaxima(fHoje);
-                        var fSemanaAntDia = ateHora(filtrar(dSemanaAnt, chave), corteHoje);
-                        var fAnoDia = ateHora(filtrar(dAno, chave), corteHoje);
-                        var fSem = filtrar(wAtual, chave);
-                        var fMes = filtrar(mAtual, chave);
-                        var fOntem = filtrar(linhasOntem, chave);
-                        var fAgo = filtrar(agosto2026, chave);
-                        var fJul = filtrar(julho2026, chave);
-                        var fAgoAno = filtrar(agosto2025, chave);
-                        var chaveTela = chave === "vila_fit" ? "fit" : chave === "vila_gourmet" ? "gourmet" : "ambas";
-                        var anterior = dadosAnteriores[chaveTela] || {};
-                        var dadosHoje = bloco(fHoje, fHoje.length
-                              ? "Hoje - " + fmtBR(hoje) + (corteHoje ? " (parcial até " + corteHoje.slice(0, 5) + ")" : "")
-                              : "Hoje - " + fmtBR(hoje) + " (aguardando importação)", {
-                                    anterior: fHoje.length ? pct(somaFat(fHoje), somaFat(fSemanaAntDia)) : null,
-                                    mesAnterior: fHoje.length ? pct(somaFat(fHoje), somaFat(filtrar(dMes, chave))) : null,
-                                    anoAnterior: fHoje.length ? pct(somaFat(fHoje), somaFat(fAnoDia)) : null
-                        });
-                        dadosHoje.semDados = !fHoje.length;
-                        return {
-                                    hoje: dadosHoje,
-                                    ontem: bloco(fOntem, "Ontem - " + fmtBR(ontem) + " (dia fechado)", {
-                                                  anterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemSemanaAnt, chave))),
-                                                  mesAnterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemMesAnt, chave))),
-                                                  anoAnterior: pct(somaFat(fOntem), somaFat(filtrar(linhasOntemAnoAnt, chave)))
-                                    }),
-                                    semana: bloco(fSem, "Semana " + fmtBR(segAtual) + " a " + fmtBR(hoje), {
-                                                  anterior: pct(somaFat(fSem), somaFat(filtrar(wAnt, chave))),
-                                                  mesAnterior: pct(somaFat(fSem), somaFat(filtrar(wMes, chave))),
-                                                  anoAnterior: pct(somaFat(fSem), somaFat(filtrar(wAno, chave)))
-                                    }),
-                                    semana_anterior: bloco(filtrar(wAnt, chave), "Semana completa " + fmtBR(segAnterior) + " a " + fmtBR(domAnterior), {
-                                                  anterior: pct(somaFat(filtrar(wAnt, chave)), somaFat(filtrar(wAntAnt, chave))),
-                                                  mesAnterior: pct(somaFat(filtrar(wAnt, chave)), somaFat(filtrar(wAntMes, chave))),
-                                                  anoAnterior: pct(somaFat(filtrar(wAnt, chave)), somaFat(filtrar(wAntAno, chave)))
-                                    }),
-                                    mes: bloco(fMes, "Mes corrente ate " + fmtBR(hoje), {
-                                                  anterior: pct(somaFat(fMes), somaFat(filtrar(mAnt, chave))),
-                                                  mesAnterior: pct(somaFat(fMes), somaFat(filtrar(mAnt, chave))),
-                                                  anoAnterior: pct(somaFat(fMes), somaFat(filtrar(mAno, chave)))
-                                    }),
-                                    agosto: bloco(fAgo, "Agosto/2026 (mês fechado)", {
-                                                  anterior: pct(somaFat(fAgo), somaFat(fJul)),
-                                                  mesAnterior: pct(somaFat(fAgo), somaFat(fJul)),
-                                                  anoAnterior: pct(somaFat(fAgo), somaFat(fAgoAno))
-                                    }),
-                                    heat: heat(fMes),
-                                    matrix: matriz(fMes),
-                                    heatAgosto: heat(fAgo),
-                                    matrixAgosto: matriz(fAgo)
-                        };
-              }
-
-              window.DATA = {
-                                    fit: unidade("vila_fit"),
-                                    gourmet: unidade("vila_gourmet"),
-                                    ambas: unidade("ambas")
-                          };
-              window.FOCO_SEMANAL = {
-                    fit: historicoFoco(wFoco, "vila_fit", segAtual, corteFoco),
-                    gourmet: historicoFoco(wFoco, "vila_gourmet", segAtual, corteFoco),
-                    ambas: historicoFoco(wFoco, "ambas", segAtual, corteFoco)
-              };
-              var diasDec = temDiasFechadosNoMes ? corteFechamento.getDate() : 0;
-              var diasMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
-              function rotuloMesAno(d) {
-                        return d.toLocaleDateString("pt-BR", {
-                              month: "short", year: "numeric"
-                        }).replace(".", "").replace(" de ", "/").toUpperCase();
-              }
-              function fech(chave) {
-                        var resumoUnidade = filtrar(resumoAnoAnterior, chave);
-                        var fatAnoAnteriorTotal = resumoUnidade.reduce(function (s, l) {
-                              return s + Number(l.faturamento || 0);
-                        }, 0);
-                        return {
-                                    fatAcumulado: somaFat(filtrar(mAtual, chave)),
-                                    diasDecorridos: diasDec,
-                                    diasMes: diasMes,
-                                    dataCorte: temDiasFechadosNoMes ? fmtBR(corteFechamento) : "—",
-                                    fatMesAnterior: somaFat(filtrar(mAnt, chave)) || null,
-                                    fatAnoAnterior: somaFat(filtrar(mAno, chave)),
-                                    anoAnteriorLabel: "mesmo período " + (hoje.getFullYear() - 1) + " (até " + (temDiasFechadosNoMes ? fmtBR(anoAntRef) : "—") + ")",
-                                    fatAnoAnteriorTotal: resumoUnidade.length ? fatAnoAnteriorTotal : null,
-                                    anoAnteriorTotalLabel: rotuloMesAno(anoAntRef) + " (mês completo)",
-                                    mesAnteriorLabel: rotuloMesAno(mesAntRef),
-                                    mesAtualLabel: rotuloMesAno(hoje)
-                        };
-              }
-              window.FECHAMENTO = {
-                        fit: fech("vila_fit"),
-                        gourmet: fech("vila_gourmet"),
-                        ambas: fech("ambas")
-              };
-              document.querySelectorAll('[data-period="semana_anterior"]').forEach(function (btn) {
-                    btn.disabled = false;
-                    btn.title = "Última semana completa (seg–dom)";
-              });
-              document.querySelectorAll('[data-period="ontem"]').forEach(function (btn) {
-                    btn.disabled = false;
-                    btn.title = "Resultado do dia anterior";
-              });
-              var nota = document.getElementById("dataSourceNote");
-              if (nota) {
-                    var semDadosHoje = !dHoje.length;
-                    var ultimaDisponivel = ultimaImportacao
-                          ? fmtBR(ultimaImportacao.dataObj) + (ultimaImportacao.hora ? " até " + ultimaImportacao.hora.slice(0, 5) : "")
-                          : "nenhum dado importado";
-                    nota.textContent = semDadosHoje
-                          ? "AGUARDANDO IMPORTAÇÃO DE HOJE · últimos dados disponíveis: " + ultimaDisponivel
-                          : "DADOS AO VIVO · atualizado em " + new Date().toLocaleString("pt-BR");
-                    nota.style.color = semDadosHoje ? "var(--gourmet)" : "";
-              }
-      }).catch(function (e) {
-              console.error("Falha ao carregar dados ao vivo.", e);
-              var notaErro = document.getElementById("dataSourceNote");
-              if (notaErro) {
-                    notaErro.textContent = "NÃO FOI POSSÍVEL ATUALIZAR OS DADOS · verifique a conexão e tente novamente";
-                    notaErro.style.color = "var(--bad)";
-              }
-              Object.keys(window.DATA || {}).forEach(function (unidade) {
-                    Object.keys(window.DATA[unidade] || {}).forEach(function (periodo) {
-                          var blocoAtual = window.DATA[unidade][periodo];
-                          if (blocoAtual && blocoAtual.carregando) blocoAtual.carregando = false;
-                    });
-              });
-      }).then(function () {
-              if (window.renderAll) window.renderAll();
-      });
+   var consultaCache=new Map(),cargaVersao=0;
+   function hojeBrasil(){var p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());return new Date(p+"T12:00:00");}
+   function dataSelecionada(v){return new Date(v+"T12:00:00");}
+   function fimMes(d){return new Date(d.getFullYear(),d.getMonth()+1,0,12);}
+   function deslocarMes(d,n){var x=new Date(d.getFullYear(),d.getMonth()+n,1,12);x.setDate(Math.min(d.getDate(),fimMes(x).getDate()));return x;}
+   function consulta(de,ate,resumo){
+     var k=(resumo?"r:":"i:")+de+":"+ate;
+     if(consultaCache.has(k))return consultaCache.get(k);
+     var p=resumo?buscarResumoDiario(de,ate):buscar(de,ate);consultaCache.set(k,p);
+     p.catch(function(){consultaCache.delete(k);});return p;
    }
-
-   function iniciarDadosVivos() {
-         buscarUltimaData().then(function (ultimaImportacao) {
-               carregarDados(new Date(), ultimaImportacao);
-         }).catch(function (e) {
-               console.error("Falha ao localizar a data mais recente.", e);
-               carregarDados(new Date(), null);
-         });
+   function carregarPeriodo(){
+     var v=++cargaVersao,p=state.period,hoje=hojeBrasil(),ini,fim;
+     if(p==="personalizado"){
+       ini=dataSelecionada(document.getElementById("dateFrom").value);fim=dataSelecionada(document.getElementById("dateTo").value);
+       if(!Number.isFinite(+ini)||!Number.isFinite(+fim)||ini>fim||fim>hoje){document.getElementById("dateStatus").textContent="Escolha datas válidas, em ordem, até hoje.";return Promise.resolve();}
+     }else if(p==="mes"||p==="agosto"||p==="setembro"){
+       ini=p==="agosto"?dataSelecionada("2026-08-01"):p==="setembro"?dataSelecionada("2026-09-01"):new Date(hoje.getFullYear(),hoje.getMonth(),1,12);
+       fim=fimMes(ini);if(fim>hoje)fim=hoje;
+     }else{
+       fim=p==="ontem"?addDias(hoje,-1):p==="semana_anterior"?addDias(inicioSemana(hoje),-1):hoje;
+       ini=p==="semana"||p==="semana_anterior"?inicioSemana(fim):fim;
+     }
+     var de=iso(ini),ate=iso(fim),titulo=fmtBR(ini)+" a "+fmtBR(fim),nota=document.getElementById("dataSourceNote");
+     document.getElementById("dateStatus").textContent="";
+     document.getElementById("dateFrom").value=de;document.getElementById("dateTo").value=ate;
+     ["fit","gourmet","ambas"].forEach(function(u){DATA[u][p]=Object.assign(criarPeriodoCarregando(titulo),{heat:{rows:[],cols:[],values:[]},matrix:{stars:[],plow:[],puzzle:[],dogs:[]}});});
+     window.FOCO_SEMANAL=null;nota.textContent="CARREGANDO · "+titulo;renderAll();
+     var dias=Math.round((fim-ini)/86400000)+1,antFim=addDias(ini,-1),antIni=addDias(antFim,1-dias);
+     if(p==="hoje"||p==="ontem"){antIni=addDias(ini,-7);antFim=antIni;}
+     var mesIni=deslocarMes(ini,-1),mesFim=deslocarMes(fim,-1),anoIni=deslocarMes(ini,-12),anoFim=deslocarMes(fim,-12);
+     if(p==="hoje"||p==="ontem"){anoIni=mesmoDiaSemanaAnoAnterior(ini);anoFim=anoIni;}
+     var mensal=ini.getDate()===1&&ini.getMonth()===fim.getMonth()&&ini.getFullYear()===fim.getFullYear();
+     if(mensal){antIni=mesIni;antFim=mesFim;}
+     function aplicar(linhas,cs){
+       if(v!==cargaVersao)return;
+       ["fit","gourmet","ambas"].forEach(function(u){
+         var chave=u==="fit"?"vila_fit":u==="gourmet"?"vila_gourmet":"ambas",f=filtrar(linhas,chave);
+         var somar=function(xs){return filtrar(xs,chave).reduce(function(s,l){return s+Number(l.faturamento||0);},0);};
+         var b=bloco(f,titulo,{anterior:cs?pct(somaFat(f),somar(cs[0])):null,mesAnterior:cs?pct(somaFat(f),somar(cs[1])):null,anoAnterior:cs?pct(somaFat(f),somar(cs[2])):null});
+         b.semDados=!f.length;b.selecionado=true;b.mensal=mensal;b.inicio=de;b.fim=ate;b.fechado=fim<new Date(hoje.getFullYear(),hoje.getMonth(),1,12);
+         if(cs){b.fatMesAnterior=somar(cs[1]);b.fatAnoAnterior=somar(cs[2]);}
+         DATA[u][p]=b;
+       });
+       nota.textContent="PERÍODO SELECIONADO · "+titulo;nota.style.color="";renderAll();
+     }
+     var principal=consulta(de,ate,false).then(function(xs){aplicar(xs);return xs;});
+     function comparacao(a,b){
+       if(p!=="hoje"&&p!=="ontem")return consulta(iso(a),iso(b),true);
+       return Promise.all([principal,consulta(iso(a),iso(b),false)]).then(function(r){
+         var xs=p==="hoje"?ateHora(r[1],horaMaxima(r[0])):r[1];
+         return xs.map(function(l){return {operacao:l.operacao,faturamento:l.valor_total};});
+       });
+     }
+     Promise.all([principal,Promise.all([comparacao(antIni,antFim),comparacao(mesIni,mesFim),comparacao(anoIni,anoFim)])]).then(function(r){aplicar(r[0],r[1]);}).catch(function(){
+       if(v!==cargaVersao)return;nota.textContent="NÃO FOI POSSÍVEL CARREGAR · selecione o período novamente";nota.style.color="var(--bad)";
+       ["fit","gourmet","ambas"].forEach(function(u){DATA[u][p].carregando=false;});renderAll();
+     });
+     var seg=inicioSemana(fim);
+     principal.then(function(){return consulta(iso(addDias(seg,-35)),ate,false);}).then(function(xs){
+       if(v!==cargaVersao)return;
+       window.FOCO_SEMANAL={fit:historicoFoco(xs,"vila_fit",seg,fim),gourmet:historicoFoco(xs,"vila_gourmet",seg,fim),ambas:historicoFoco(xs,"ambas",seg,fim)};renderFocus();
+     }).catch(function(){});
+     return principal;
    }
-
+   window.carregarPeriodoSelecionado=carregarPeriodo;
+   function iniciarDadosVivos(){
+     consultaCache.clear();var hoje=hojeBrasil();
+     document.querySelector('[data-period="mes"]').textContent=hoje.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+     document.querySelectorAll(".period-btn").forEach(function(b){b.disabled=false;b.title="";});
+     document.getElementById("dateFrom").max=iso(hoje);document.getElementById("dateTo").max=iso(hoje);carregarPeriodo();
+   }
    /* Importação manual segura do relatório Vendas Realizadas no Período. */
    var importModal = document.getElementById("importModal");
    var importLogin = document.getElementById("importLogin");
@@ -1549,7 +1351,7 @@ function renderKPIs(){
         <div class="ticket-label">${k.label}</div>
         <div class="ticket-value num">—</div>
         <div class="ticket-perf"></div>
-        <span class="ticket-ref">Aguardando importação de hoje</span>
+        <span class="ticket-ref">${d.carregando?'Carregando período…':'Sem dados importados para este período'}</span>
       </div>`).join('');
     const rangeEl = document.getElementById('periodRange');
     if(rangeEl) rangeEl.textContent = 'Período exibido: ' + d.periodo;
@@ -1559,7 +1361,7 @@ function renderKPIs(){
   const rotulo = periodoDiario ? 'dia'
                : (state.period==='semana' || state.period==='semana_anterior') ? 'semana'
                : 'periodo';
-  const rotuloAnterior = state.period==='hoje' ? 'mesmo dia da semana anterior (até o mesmo horário)'
+  const rotuloAnterior = state.period==='personalizado' ? 'período anterior' : state.period==='hoje' ? 'mesmo dia da semana anterior (até o mesmo horário)'
                        : state.period==='ontem' ? 'mesmo dia da semana anterior'
                        : (state.period==='semana' || state.period==='semana_anterior') ? 'semana anterior'
                        : 'mes anterior';
@@ -1788,7 +1590,7 @@ function renderCompare(){
     hoje:'hoje', ontem:'ontem', semana:'semana atual',
     semana_anterior:'semana anterior', mes:'mês atual', agosto:'agosto/2026'
   }[state.period] || state.period;
-  document.getElementById('compareTitle').textContent = 'Vila Fit × Vila Gourmet — ' + tituloPeriodo;
+  document.getElementById('compareTitle').textContent = 'Vila Fit × Vila Gourmet — ' + (f.selecionado ? f.periodo : tituloPeriodo);
   const fatFit = f.semDados ? null : Number(f.fat || 0);
   const fatGourmet = g.semDados ? null : Number(g.fat || 0);
   const fatTotal = fatFit===null && fatGourmet===null ? null : (fatFit || 0) + (fatGourmet || 0);
@@ -1915,10 +1717,11 @@ document.querySelectorAll('.period-btn').forEach(btn=>{
     document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     state.period = btn.dataset.period;
-    renderKPIs(); renderChart(); renderHeatmap(); renderRankings(); renderFocus(); renderMatrix(); renderCompare(); renderActions(); renderRunrate();
+    window.carregarPeriodoSelecionado();
   });
 });
 
+document.getElementById('applyDates').addEventListener('click',function(){state.period='personalizado';document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));window.carregarPeriodoSelecionado();});
 const themeBtn = document.getElementById('themeToggle');
 themeBtn.addEventListener('click', ()=>{
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
@@ -1991,6 +1794,35 @@ var notaValidada = document.getElementById('dataSourceNote');
 if (notaValidada) notaValidada.textContent = 'CARREGANDO DADOS ATUAIS...';
 if (window.iniciarDadosVivos) window.iniciarDadosVivos();
 </script>
-  <script src="correcoes-painel.js?v=20260915-4"></script>
+  <script src="correcoes-painel.js?v=20261001-1"></script>
+
+<script>
+var renderRunrateAnterior=renderRunrate;
+renderRunrate=function(){
+  var d=DATA[state.unit][state.period];
+  if(!d||!d.selecionado){
+    document.querySelector('.runrate-label').textContent='PERÍODO SELECIONADO';
+    document.getElementById('runrateValue').textContent='—';
+    document.getElementById('runrateBasis').textContent=d&&d.carregando?'Carregando…':'Sem dados para o período';
+    document.getElementById('runrateCompare').innerHTML='';return;
+  }
+  var label=document.querySelector('.runrate-label'),valor=document.getElementById('runrateValue'),base=document.getElementById('runrateBasis'),comp=document.getElementById('runrateCompare');
+  valor.style.color='';
+  var dias=Number(d.fim.slice(8)),total=new Date(Number(d.fim.slice(0,4)),Number(d.fim.slice(5,7)),0).getDate();
+  var projetar=d.mensal&&!d.fechado&&dias>=5&&!d.semDados;
+  label.textContent=projetar?'PROJEÇÃO DE FECHAMENTO':d.mensal?'FATURAMENTO DO MÊS':'FATURAMENTO DO PERÍODO';
+  valor.textContent=d.semDados?'—':fmtR(projetar?d.fat/dias*total:d.fat);
+  base.textContent=d.periodo+(projetar?' · acumulado: '+fmtR(d.fat):'')+(d.semDados?' · sem dados importados':'');
+  var linhas=[];
+  if(Number.isFinite(d.fatMesAnterior)&&d.fatMesAnterior>0)linhas.push('<div class="line">Mesmo período do mês anterior: <b>'+fmtR(d.fatMesAnterior)+'</b></div>');
+  if(Number.isFinite(d.fatAnoAnterior)&&d.fatAnoAnterior>0)linhas.push('<div class="line">Mesmo período do ano anterior: <b>'+fmtR(d.fatAnoAnterior)+'</b></div>');
+  if(d.mensal){
+    var referencia=d.inicio==='2026-09-01'?SETEMBRO_2025_VALIDADO[state.unit]:d.inicio==='2026-08-01'?AGOSTO_2025_VALIDADO[state.unit]:null;
+    if(referencia)linhas.push('<div class="line">Mês completo de 2025: <b>'+fmtR(referencia)+'</b></div>');
+  }
+  comp.innerHTML=linhas.join('');
+};
+renderAll();
+</script>
 </body>
 </html>
