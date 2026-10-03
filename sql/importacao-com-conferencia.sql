@@ -1,5 +1,7 @@
--- Verifica arquivo, base e resumo na mesma transação; divergências revertem a importação.
--- painel_conferencias_diarias: escrita apenas pelos dois gestores já autorizados para importar.
+-- Requer conferencia-relatorio-teknisa.sql. Mantém autorização dos dois gestores.
+grant insert,delete on public.painel_conferencias_diarias to authenticated;
+drop policy if exists gestor_confere_relatorio on public.painel_conferencias_diarias;
+create policy gestor_confere_relatorio on public.painel_conferencias_diarias for all to authenticated using(auth.uid() in ('21d9a9d4-022d-4c24-a26a-cc7af788aa2a'::uuid,'0be7c2a3-0f8f-4538-a476-d9900b4e0f2a'::uuid)) with check(auth.uid() in ('21d9a9d4-022d-4c24-a26a-cc7af788aa2a'::uuid,'0be7c2a3-0f8f-4538-a476-d9900b4e0f2a'::uuid));
 CREATE OR REPLACE FUNCTION public.replace_vendas_teknisa_periodo(p_inicio date, p_fim date, p_linhas jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -95,3 +97,4 @@ begin
   return jsonb_build_object('itens', v_itens, 'faturamento', v_total);
 end;
 $function$
+;
