@@ -790,7 +790,7 @@
 
    // Small versioned responses replace downloads of individual sales.
    var cargaVersao=0, memoriaPainel=new Map(), manifestoEmCurso=null, manifestoAtual=[];
-   var CACHE_PAINEL="painel-antigo-resumos-v1",MAX_CACHE_BYTES=2500000,ultimoRefresh=0;
+   var CACHE_PAINEL="painel-antigo-resumos-v2-conferencia",MAX_CACHE_BYTES=2500000,ultimoRefresh=0;
    function hojeBrasil(){
      var p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
      return new Date(p+"T12:00:00");
@@ -873,7 +873,7 @@
        top:ranking.slice(0,10),bottom:ranking.slice(-10).reverse(),matrix:matriz(produtos),
        heat:{rows:["Manha (6-10h)","Almoco (11-14h)","Tarde (15-17h)","Noite (18-21h)"],cols:["SEG","TER","QUA","QUI","SEX","SAB","DOM"],values:[0,1,2,3].map(function(i){return ht.slice(i*7,i*7+7).map(function(n){return Math.round(n/max*100);});})},
        deltaFat:null,deltaMesAnt:null,deltaAnoAnt:null,semDados:!Number(r.linhas),carregando:false,
-       detalhesCarregando:!r.produtos,horaMaxima:r.horaMaxima,selecionado:true
+       detalhesCarregando:!r.produtos,horaMaxima:r.horaMaxima,selecionado:true,conferencia:r.conferencia||null
      };
    }
    function intervaloPainel(){
@@ -2003,5 +2003,29 @@ renderRunrate=function(){
 };
 renderAll();
 </script>
+
+<script>
+var renderRunrateConferenciaOriginal=renderRunrate;
+renderRunrate=function(){
+  renderRunrateConferenciaOriginal();
+  var aviso=document.getElementById('conferenciaRelatorio');
+  if(!aviso){
+    aviso=document.createElement('div');aviso.id='conferenciaRelatorio';
+    aviso.style.cssText='margin:0 0 16px;padding:12px;border:1px solid var(--border);border-radius:9px;font-size:13px';
+    document.getElementById('runrateCard').insertAdjacentElement('beforebegin',aviso);
+  }
+  var d=DATA[state.unit]&&DATA[state.unit][state.period],c=d&&d.conferencia;
+  aviso.hidden=!c||!c.diasConferidos;
+  if(aviso.hidden)return;
+  var erro=Number(c.diasDivergentes)>0;
+  aviso.style.color=erro?'var(--bad)':'var(--fit)';
+  aviso.setAttribute('role',erro?'alert':'status');
+  aviso.textContent=erro
+    ? 'ATENÇÃO: '+c.diasDivergentes+' dia(s) diferem do relatório TEKNISA conferido. Diferença: '+fmtR(Number(c.diferenca))+'. Reimporte o relatório completo antes de usar estes valores.'
+    : 'Conferência TEKNISA: '+c.diasConferidos+' dia(s) coincidem em faturamento e quantidade de registros com o relatório conferido.';
+};
+renderAll();
+</script>
+
 </body>
 </html>
