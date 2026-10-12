@@ -257,9 +257,9 @@
     </div>
     <div class="controls">
       <div class="unit-toggle">
-        <button class="unit-btn active" data-unit="fit">Vila Fit</button>
+        <button class="unit-btn" data-unit="fit">Vila Fit</button>
         <button class="unit-btn" data-unit="gourmet">Vila Gourmet</button>
-        <button class="unit-btn" data-unit="ambas">Ambas</button>
+        <button class="unit-btn active" data-unit="ambas">Ambas</button>
       </div>
       <div class="period-toggle">
         <button class="period-btn active" data-period="hoje">Hoje</button>
@@ -775,7 +775,7 @@ const fmtR = v => 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits: v%1!=
 const fmtInt = v => v.toLocaleString('pt-BR');
 const unitLabel = u => u==='fit' ? 'VILA FIT' : u==='gourmet' ? 'VILA GOURMET' : 'VILA FIT + GOURMET';
 
-let state = { unit:'fit', period:'hoje' };
+let state = { unit:'ambas', period:'hoje' };
 
 function renderKPIs(){
   const d = DATA[state.unit][state.period];
