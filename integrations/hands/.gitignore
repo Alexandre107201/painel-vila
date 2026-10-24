@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+config.json
+*.dpapi
+*.tmp
+*.log
+*.lock
