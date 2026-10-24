@@ -1,0 +1,20 @@
+{
+  "url": "https://www.clientes.hands-ai.com.br/dre",
+  "supabase_url": "https://bbhtrxuaumhpqtbcgewc.supabase.co",
+  "publishable_key": "COPIAR_CHAVE_PUBLICAVEL_DO_PROJETO",
+  "selectors_validated": false,
+  "selectors": {
+    "operation_select": "PREENCHER_SELECT_NATIVO_OU_TRIGGER",
+    "operation_option": null,
+    "period_select": "PREENCHER_SELECT_NATIVO_OU_TRIGGER",
+    "period_option": null,
+    "apply_button": "PREENCHER_BOTAO_APLICAR_OU_ATUALIZAR",
+    "operation_evidence": "PREENCHER_OPERACAO_DO_RELATORIO",
+    "month_evidence": "PREENCHER_COMPETENCIA_DO_RELATORIO",
+    "report": "PREENCHER_TABELA_DRE",
+    "busy": null
+  },
+  "report_response_url_pattern": "PREENCHER_REGEX_ENDPOINT_DRE_OBSERVADO",
+  "month_format": "%m/%Y",
+  "headers": {"label": "Descrição", "percent": "%", "amount": "Valor"}
+}
