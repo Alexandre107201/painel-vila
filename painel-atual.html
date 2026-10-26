@@ -307,6 +307,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Painel Vila">
+
+<style>
+.hands-cmv-card{margin:0 0 20px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.hands-cmv-scope{font-size:12px;color:var(--text-2);margin-top:5px}
+.hands-cmv-actions{display:flex;gap:8px;flex-wrap:wrap}
+#handsCmvForm{flex-basis:100%;max-width:400px}#handsCmvForm[hidden]{display:none}
+@media(max-width:560px){.hands-cmv-card{padding:16px}.hands-cmv-actions button{font-size:11px;padding:9px}}
+</style>
 </head>
 <body>
 <div class="dashboard">
@@ -382,6 +390,24 @@
 <label>Até <input id="dateTo" type="date" style="display:block;padding:8px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px"></label>
 <button id="applyDates" class="import-btn">Aplicar período</button><span id="dateStatus" role="status" style="color:var(--bad)"></span>
 </div>
+
+  <section class="hands-cmv-card" aria-label="CMV consolidado Hands">
+    <div><div class="ticket-label">CMV % · Hands · mês atual</div>
+    <div class="ticket-value num" id="handsCmvValue">—</div>
+    <div class="hands-cmv-scope">Vila Fit / Vila Gourmet · consolidado</div>
+    <div class="runrate-basis" id="handsCmvNote" role="status">Consultando…</div></div>
+    <div class="hands-cmv-actions">
+      <button class="import-secondary" id="handsCmvLogin" type="button">Entrar para consultar</button>
+      <button class="import-secondary" id="handsCmvRefresh" type="button">Atualizar CMV</button>
+      <button class="import-secondary" id="handsCmvLogout" type="button">Sair</button>
+    </div>
+    <form id="handsCmvForm" hidden>
+      <p class="runrate-basis">Use seu acesso de administrador do painel.</p>
+      <label class="import-field">E-mail<input id="handsCmvEmail" type="email" autocomplete="username" required></label>
+      <label class="import-field">Senha<input id="handsCmvPassword" type="password" autocomplete="current-password" required></label>
+      <button class="import-primary" type="submit">Entrar</button>
+    </form>
+  </section>
   <div class="runrate-card" id="runrateCard">
     <div class="runrate-label">Projeção de fechamento</div>
     <div class="runrate-value num" id="runrateValue">—</div>
@@ -466,7 +492,7 @@
     <ul class="actions-list" id="actionsList"></ul>
   </div>
 
-  <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Na unidade integrada 0002: Vila Gourmet = caixas 005-008 e 010; os demais caixas = Vila Fit. A unidade histórica 0001 permanece Vila Gourmet. Semana atual mostra de segunda-feira até a última data importada; Semana anterior mostra a última semana completa, de segunda a domingo. CMV permanece indisponível porque este relatório não traz custo por produto.</div>
+  <div class="footnote">Dados reais do relatório "Vendas Realizadas no Período" (TEKNISA/Odhen). Na unidade integrada 0002: Vila Gourmet = caixas 005-008 e 010; os demais caixas = Vila Fit. A unidade histórica 0001 permanece Vila Gourmet. Semana atual mostra de segunda-feira até a última data importada; Semana anterior mostra a última semana completa, de segunda a domingo. O cartão superior de CMV vem da DRE Hands, consolidado de Vila Fit / Vila Gourmet no mês atual. O relatório TEKNISA não fornece CMV por operação ou produto.</div>
 </div>
 
 <script>
@@ -2063,6 +2089,83 @@ function stock(r){try{var x=localStorage.getItem(stockKey(r));return x===null?''
 function render(){var adjustment=Number(document.getElementById('productionAdjustment').value)||0;body.innerHTML=rows.map(function(r,i){var st=stock(r),p=plan(r.a,r.b,adjustment,Number(st)||0,r.fraction),fmt=function(n){return n===null?'Indisponível':n.toLocaleString('pt-BR',{maximumFractionDigits:2});};return '<tr><td class="focus-name">'+esc(r.name)+'<div class="production-note">'+esc(r.group)+(r.group==='Sucos de garrafinha'?' · confirmar embalagem':'')+' · '+(r.fraction?'quantidade fracionada do cadastro':'unidades do cadastro')+'</div></td><td>'+fmt(r.a)+'</td><td>'+fmt(r.b)+'</td><td>'+fmt(p.forecast)+'</td><td><input aria-label="Estoque pronto de '+esc(r.name)+'" class="production-stock" data-row="'+i+'" type="number" min="0" step="'+(r.fraction?'0.01':'1')+'" value="'+esc(st)+'" placeholder="Informar"></td><td class="focus-value current" id="productionMake'+i+'">'+fmt(p.make)+'</td><td>'+ (r.a===null||r.b===null?'Só uma referência':'Duas referências')+(st===''?' · estoque pendente':'')+'</td></tr>';}).join('');}
 async function load(){var v=++version;rows=[];body.innerHTML='';var selected=date.value;if(!/^\d{4}-\d{2}-\d{2}$/.test(selected)){status.textContent='Selecione o dia da produção.';return;}if(selected>iso(hojeBrasil())){status.textContent='Escolha hoje ou uma data anterior; a previsão usa os dias anteriores à data selecionada.';return;}var d=dataSelecionada(selected),a=iso(addDias(d,-1)),b=iso(addDias(d,-7)),u=unit.value;status.textContent='Carregando referências reais…';document.getElementById('productionYesterday').textContent='Dia anterior · '+a.split('-').reverse().join('/');document.getElementById('productionWeek').textContent='Mesmo dia · '+b.split('-').reverse().join('/');try{var m=await manifestoPainel(),ds=await Promise.all([consultarResumo(a,a,true,m),consultarResumo(b,b,true,m)]);if(v!==version)return;var maps=ds.map(function(d){var x=d.unidades&&d.unidades[u];if(!x||!Array.isArray(x.produtos))throw Error('Resumo sem produtos');if(x.conferencia&&Number(x.conferencia.diasDivergentes)>0)throw Error('Há divergência na conferência TEKNISA. Reimporte o dia antes de calcular.');return x.produtos.length?new Map(x.produtos.map(function(p){return [p[0],p];})):null;});var names=new Set();maps.forEach(function(m){if(m)m.forEach(function(p,n){if(family(n))names.add(n);});});rows=Array.from(names).sort(function(a,b){return a.localeCompare(b,'pt-BR');}).map(function(n){var pa=maps[0]&&maps[0].get(n),pb=maps[1]&&maps[1].get(n);return {name:n,group:family(n),a:maps[0]?(pa?Number(pa[1]):0):null,b:maps[1]?(pb?Number(pb[1]):0):null,fraction:!!((pa&&pa[3])||(pb&&pb[3]))};});status.textContent=rows.length?rows.length+' produtos encontrados. '+(maps.some(function(m){return !m;})?'Uma referência indisponível: sugestão provisória baseada somente no outro dia. ':'')+'Informe o estoque antes de liberar a produção. Sucos por volume exigem confirmação de que são de garrafinha.':'Não há produtos das famílias selecionadas nas referências. Verifique importações e nomes do cadastro.';render();}catch(e){if(v!==version)return;status.textContent='Não foi possível calcular: '+e.message+'. Nenhuma quantidade foi estimada.';}}
 document.getElementById('openProduction').onclick=function(){screen.hidden=false;date.value=iso(hojeBrasil());unit.value=state.unit;load();document.getElementById('closeProduction').focus();};document.getElementById('closeProduction').onclick=function(){version++;screen.hidden=true;document.getElementById('openProduction').focus();};document.getElementById('loadProduction').onclick=load;date.onchange=load;unit.onchange=load;document.getElementById('productionAdjustment').onchange=render;body.onchange=function(e){if(!e.target.matches('[data-row]'))return;var r=rows[Number(e.target.dataset.row)];if(!r)return;if(!e.target.checkValidity()){e.target.reportValidity();return;}try{if(e.target.value==='')localStorage.removeItem(stockKey(r));else localStorage.setItem(stockKey(r),e.target.value);}catch(x){status.textContent='O aparelho não permitiu salvar o estoque. Habilite o armazenamento local.';}render();};document.getElementById('printProduction').onclick=function(){if(!rows.length){status.textContent='Calcule a produção e aguarde a lista carregar antes de imprimir.';return;}document.body.classList.add('production-print');window.print();document.body.classList.remove('production-print');};document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!screen.hidden)document.getElementById('closeProduction').click();});
+})();
+</script>
+
+
+<script>
+/* CMV Hands: leitura privada, independente dos filtros de vendas. */
+(function(){
+'use strict';
+var URL_BASE='https://bbhtrxuaumhpqtbcgewc.supabase.co';
+var KEY='sb_publishable_VO0CBuxqDHhk3n5IwcFjBA_cDwfq0JK';
+var value=document.getElementById('handsCmvValue'),note=document.getElementById('handsCmvNote');
+var login=document.getElementById('handsCmvLogin'),form=document.getElementById('handsCmvForm');
+var saved=null,busy=false,lastLoad=0,sessionToken='';
+function monthNow(){
+ var parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+ return parts.find(p=>p.type==='year').value+'-'+parts.find(p=>p.type==='month').value+'-01';
+}
+function session(){
+ try {var s=JSON.parse(sessionStorage.getItem('painel_vila_import_session')||'null');
+ return s&&s.access_token&&s.expires_at*1000>Date.now()+30000?s:null;}catch(e){return null;}
+}
+function clear(message){saved=null;value.textContent='—';value.style.color='';note.textContent=message;}
+function paint(){
+ if(!saved)return;
+ if(saved.competence!==monthNow()){clear('Aguardando captura do mês atual.');return;}
+ var age=Date.now()-Date.parse(saved.captured_at),stale=age>7200000;
+ value.textContent=Number(saved.cmv_percent).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
+ value.style.color=stale?'var(--gourmet)':'var(--text)';
+ var date=new Date(saved.captured_at);
+ note.textContent=(stale?'Desatualizado · última captura: ':'Capturado em ')+date.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+' · atualização a cada 60 min';
+}
+async function load(force){
+ var s=session();
+ login.hidden=!!s;
+ if(!s){sessionToken='';clear('Entre com seu acesso de administrador para consultar.');return;}
+ if(sessionToken!==s.access_token){saved=null;lastLoad=0;sessionToken=s.access_token;}
+ paint();
+ if(busy||(!force&&Date.now()-lastLoad<60000))return;
+ busy=true;lastLoad=Date.now();
+ var token=s.access_token,controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+ try{
+  var query=new URLSearchParams({select:'operation,competence,cmv_percent,captured_at',operation:'eq.Vila Fit / Vila Gourmet',competence:'eq.'+monthNow(),order:'captured_at.desc',limit:'1'});
+  var response=await fetch(URL_BASE+'/rest/v1/hands_cmv_captures?'+query,{headers:{apikey:KEY,Authorization:'Bearer '+token},signal:controller.signal,cache:'no-store'});
+  if(!session()||session().access_token!==token)return;
+  if(!response.ok)throw Error('HTTP '+response.status);
+  var rows=await response.json(),r=rows[0];
+  if(!r){clear('Sem captura disponível para este acesso no mês atual.');return;}
+  var n=Number(r.cmv_percent),time=Date.parse(r.captured_at);
+  if(r.operation!=='Vila Fit / Vila Gourmet'||r.competence!==monthNow()||r.cmv_percent===null||!Number.isFinite(n)||n<0||n>100||!Number.isFinite(time)||time>Date.now()+60000)throw Error('Captura inválida');
+  saved=r;paint();
+ }catch(e){
+  if(saved){paint();note.textContent+=' · falha na consulta; exibindo última leitura';}
+  else clear('Não foi possível consultar o CMV. Tente atualizar.');
+ }finally{clearTimeout(timer);busy=false;}
+}
+login.onclick=function(){form.hidden=!form.hidden;if(!form.hidden)document.getElementById('handsCmvEmail').focus();};
+form.onsubmit=async function(e){
+ e.preventDefault();var button=form.querySelector('button[type="submit"]'),password=document.getElementById('handsCmvPassword');
+ button.disabled=true;note.textContent='Validando acesso…';
+ var controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+ try{
+  var response=await fetch(URL_BASE+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},signal:controller.signal,
+   body:JSON.stringify({email:document.getElementById('handsCmvEmail').value.trim(),password:password.value})});
+  if(!response.ok)throw Error('Login');
+  var s=await response.json();
+  if(!s.access_token||!s.expires_at)throw Error('Sessão');
+  sessionStorage.setItem('painel_vila_import_session',JSON.stringify(s));form.hidden=true;
+  await load(true);
+ }catch(e){clear('Não foi possível entrar. Confira seu acesso e tente novamente.');}
+ finally{password.value='';clearTimeout(timer);button.disabled=false;}
+};
+document.getElementById('handsCmvRefresh').onclick=function(){load(true);};
+document.getElementById('handsCmvLogout').onclick=function(){sessionStorage.removeItem('painel_vila_import_session');form.hidden=true;load(true);};
+setInterval(function(){if(!document.hidden)load(false);},5000);
+window.addEventListener('focus',function(){load(false);});
+document.addEventListener('visibilitychange',function(){if(!document.hidden)load(false);});
+load(true);
 })();
 </script>
 
