@@ -710,7 +710,7 @@
          { nome: "Comida japonesa", unidade: "un", casa: 0, operacao: "vila_fit", teste: function (n) { return n.indexOf("COMBINADO JAPONES") >= 0 || n.indexOf("JAPONES TEMAKI") >= 0; } },
          { nome: "Pão com pernil", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PAO COM PERNIL") >= 0; } },
          { nome: "Pastel · Vila Fit", unidade: "un", casa: 0, operacao: "vila_fit", teste: function (n) { return n.indexOf("PASTEL") === 0 && n.indexOf("KG") < 0; } },
-         { nome: "Pastel unidade · Vila Gourmet", unidade: "un", casa: 0, operacao: "vila_gourmet", teste: function (n) { return /VENDA\s+PASTEL\s+UNIDADE/.test(n); } },
+         { nome: "Pastel unidade · Vila Gourmet", unidade: "un", casa: 0, operacao: "vila_gourmet", teste: function (n) { return /VENDA\s+PASTEL\s+UNIDADE/.test(n) || /^PASTEL.*\b(UND|UNIDADE)\b/.test(n); } },
          { nome: "Picolé", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PICOLE") === 0; } },
          { nome: "Bebidas não alcoólicas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(AGUA|COCA|GUARANA|FANTA|SPRITE|SUCO|REFRI|H2O|H20H|ENERGET|RED ?BULL|MONSTER|GATORADE|POWERADE|DEL VALLE|KAPO|MINEIRINHO|COCO VERDE|ITALAC PRO)/.test(n) && n.indexOf("CAFE GELADO") < 0; } },
          { nome: "Cervejas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(BRAHMA|CERVEJ|CORONA|HEINEKEN|SPATEN|AMSTEL|STELLA|SKOL|BUDWEISER|ANTARCTICA.*600|BECK|BOHEMIA|PETRA|ITAIPAVA)/.test(n) && !/(CHOP|CHOPP)/.test(n); } },
@@ -721,7 +721,7 @@
          { nome: "Combos", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /\bCOMBO(S)?\b/.test(n); } },
          { nome: "Drinks", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /\bDRINK(S)?\b|COQUETEL|CAIPIRINHA|CAIPIROSKA|GIN TONICA|MOSCOW MULE|APEROL SPRITZ|NEGRONI|MOJITO|MARGARITA|SEX ON THE BEACH|PINA COLADA/.test(n); } },
          { nome: "Doces e confeitaria", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(DOCE|BOLO|PUDIM|BRIGADEIRO|MOUSSE|SOBREMESA|CHOCOLATE|KINDER|COOKIE|COPO DA FELICIDADE|SORVETE|BROWNIE|BOMBOM|TRUFA)/.test(n); } },
-         { nome: "Pratos · Vila Gourmet", unidade: "R$", casa: 2, medida: "valor", operacao: "vila_gourmet", detalhar: true, teste: function (n) { return /(PRATO|PARMEGIANA|KIDS |MINI FRANGO|SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|LIMAO SICILIANO|CARNE SECA E CAMBOTIA|GO KIDS)/.test(n); } },
+         { nome: "Pratos · Vila Gourmet", unidade: "R$", casa: 2, medida: "valor", operacao: "vila_gourmet", detalhar: true, teste: function (n) { return /(PRATO|PARMEGIANA|KIDS |MINI FRANGO|SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|LIMAO SICILIANO|CARNE SECA E CAMBOTIA|GO KIDS|POWER TILAPIA|FILE DE FRANGO|FILE DE TILAPIA|ANCHO|BABY BEFF|BIFE A CAVALO|ISCA DE FRANGO|PICANHA|FUNGHI|CLASSICO PROTEICO|OMELETE PROTEICO|GO CRISPY)/.test(n); } },
          { nome: "Grelhados", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(GRELHADO|FILE|TILAPIA|BABY BE|ANCHO|PICANHA)/.test(n); } },
          { nome: "Espetinhos", unidade: "R$", casa: 2, medida: "valor", detalhar: true, teste: function (n) { return /(ESPETINHO|ESPETO )/.test(n); } },
          { nome: "Buffet de massas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /BUFFET.*MASSA/.test(n); } }
@@ -731,6 +731,7 @@
          return String(texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
    }
 
+   window.FOCO_HELPERS={normalizarProduto:normalizarProduto,addDias:addDias,iso:iso};
    function somarProdutosFoco(linhas, chave) {
          return PRODUTOS_FOCO.map(function (produto) {
                return linhas.reduce(function (soma, linha) {
@@ -1743,6 +1744,8 @@ function renderMatrix(){
 window.FOCO_ABERTO=window.FOCO_ABERTO||{};
 function focoDetalhes(produto){
  const linhas=window.FOCO_LINHAS||[], seg=window.FOCO_INICIO, fim=window.FOCO_FIM;
+ const {normalizarProduto,addDias,iso}=window.FOCO_HELPERS||{};
+ if(!normalizarProduto||!addDias||!iso)return '<tr><td colspan="7" class="focus-empty">Detalhamento indisponível. Atualize a página.</td></tr>';
  if(!seg||!fim)return '';
  const op=produto.operacao||(state.unit==='ambas'?null:state.unit==='fit'?'vila_fit':'vila_gourmet');
  const itens=new Map();
