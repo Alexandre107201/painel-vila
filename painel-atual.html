@@ -709,7 +709,8 @@
          { nome: "Self café da manhã", unidade: "kg", casa: 2, teste: function (n) { return n.indexOf("SELF CAFE DA MANHA") >= 0; } },
          { nome: "Comida japonesa", unidade: "un", casa: 0, operacao: "vila_fit", teste: function (n) { return n.indexOf("COMBINADO JAPONES") >= 0 || n.indexOf("JAPONES TEMAKI") >= 0; } },
          { nome: "Pão com pernil", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PAO COM PERNIL") >= 0; } },
-         { nome: "Pastel", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PASTEL") === 0 && n.indexOf("KG") < 0; } },
+         { nome: "Pastel · Vila Fit", unidade: "un", casa: 0, operacao: "vila_fit", teste: function (n) { return n.indexOf("PASTEL") === 0 && n.indexOf("KG") < 0; } },
+         { nome: "Pastel unidade · Vila Gourmet", unidade: "un", casa: 0, operacao: "vila_gourmet", teste: function (n) { return /VENDA\s+PASTEL\s+UNIDADE/.test(n); } },
          { nome: "Picolé", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PICOLE") === 0; } },
          { nome: "Bebidas não alcoólicas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(AGUA|COCA|GUARANA|FANTA|SPRITE|SUCO|REFRI|H2O|H20H|ENERGET|RED ?BULL|MONSTER|GATORADE|POWERADE|DEL VALLE|KAPO|MINEIRINHO|COCO VERDE|ITALAC PRO)/.test(n) && n.indexOf("CAFE GELADO") < 0; } },
          { nome: "Cervejas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(BRAHMA|CERVEJ|CORONA|HEINEKEN|SPATEN|AMSTEL|STELLA|SKOL|BUDWEISER|ANTARCTICA.*600|BECK|BOHEMIA|PETRA|ITAIPAVA)/.test(n) && !/(CHOP|CHOPP)/.test(n); } },
@@ -720,9 +721,9 @@
          { nome: "Combos", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /\bCOMBO(S)?\b/.test(n); } },
          { nome: "Drinks", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /\bDRINK(S)?\b|COQUETEL|CAIPIRINHA|CAIPIROSKA|GIN TONICA|MOSCOW MULE|APEROL SPRITZ|NEGRONI|MOJITO|MARGARITA|SEX ON THE BEACH|PINA COLADA/.test(n); } },
          { nome: "Doces e confeitaria", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(DOCE|BOLO|PUDIM|BRIGADEIRO|MOUSSE|SOBREMESA|CHOCOLATE|KINDER|COOKIE|COPO DA FELICIDADE|SORVETE|BROWNIE|BOMBOM|TRUFA)/.test(n); } },
-         { nome: "Pratos", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(PRATO|PARMEGIANA|KIDS |MINI FRANGO|SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|LIMAO SICILIANO|CARNE SECA E CAMBOTIA|GO KIDS)/.test(n); } },
+         { nome: "Pratos · Vila Gourmet", unidade: "R$", casa: 2, medida: "valor", operacao: "vila_gourmet", detalhar: true, teste: function (n) { return /(PRATO|PARMEGIANA|KIDS |MINI FRANGO|SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|LIMAO SICILIANO|CARNE SECA E CAMBOTIA|GO KIDS)/.test(n); } },
          { nome: "Grelhados", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(GRELHADO|FILE|TILAPIA|BABY BE|ANCHO|PICANHA)/.test(n); } },
-         { nome: "Espetinhos", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(ESPETINHO|ESPETO )/.test(n); } },
+         { nome: "Espetinhos", unidade: "R$", casa: 2, medida: "valor", detalhar: true, teste: function (n) { return /(ESPETINHO|ESPETO )/.test(n); } },
          { nome: "Buffet de massas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /BUFFET.*MASSA/.test(n); } }
    ];
 
@@ -987,6 +988,7 @@
              var semanas=historicoFoco(xs,chave,seg,fim);
              semanas[semanas.length-1].comparacaoValores=somarProdutosFoco(anteriorParcial,chave);return semanas;
            }
+           window.FOCO_LINHAS=xs;window.FOCO_INICIO=seg;window.FOCO_FIM=fim;
            window.FOCO_SEMANAL={fit:focoUnidade("vila_fit"),gourmet:focoUnidade("vila_gourmet"),ambas:focoUnidade("ambas")};
            renderFocus();renderActions();
          })
@@ -1737,6 +1739,40 @@ function renderMatrix(){
     </div>`;
 }
 
+
+window.FOCO_ABERTO=window.FOCO_ABERTO||{};
+function focoDetalhes(produto){
+ const linhas=window.FOCO_LINHAS||[], seg=window.FOCO_INICIO, fim=window.FOCO_FIM;
+ if(!seg||!fim)return '';
+ const op=produto.operacao||(state.unit==='ambas'?null:state.unit==='fit'?'vila_fit':'vila_gourmet');
+ const itens=new Map();
+ linhas.forEach(l=>{
+  if(op&&l.operacao!==op)return;
+  const nome=normalizarProduto(l.produto);
+  if(!produto.teste(nome))return;
+  const key=l.operacao+'|'+nome;
+  if(!itens.has(key))itens.set(key,{nome:l.produto,op:l.operacao,v:[0,0,0,0,0],q:[0,0,0,0,0]});
+  const x=itens.get(key);
+  for(let i=0;i<5;i++){
+   const inicio=addDias(seg,-7*(4-i)),final=i===4?fim:addDias(inicio,6);
+   if(String(l.data)>=iso(inicio)&&String(l.data)<=iso(final)){
+    x.v[i]+=Number(l.valor_total||0);x.q[i]+=Number(l.quantidade||0);break;
+   }
+  }
+ });
+ const fmt=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const qty=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:2});
+ const safe=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const arr=Array.from(itens.values()).filter(x=>x.v.some(Boolean)||x.q.some(Boolean)).sort((a,b)=>b.v.reduce((p,c)=>p+c,0)-a.v.reduce((p,c)=>p+c,0));
+ if(!arr.length)return '<tr><td colspan="7" class="focus-empty">Nenhum produto encontrado no histórico.</td></tr>';
+ return arr.map(x=>'<tr><td class="focus-name" style="padding-left:40px;font-weight:400">↳ '+safe(x.nome)+(state.unit==='ambas'?' · '+(x.op==='vila_fit'?'Fit':'Gourmet'):'')+'</td>'+x.v.map((v,i)=>'<td class="focus-value">'+fmt(v)+'<span class="focus-change flat">'+qty(x.q[i])+' un.</span></td>').join('')+'<td class="focus-value">'+fmt(x.v.slice(0,4).reduce((a,b)=>a+b,0))+'<span class="focus-change flat">'+qty(x.q.slice(0,4).reduce((a,b)=>a+b,0))+' un.</span></td></tr>').join('');
+}
+document.addEventListener('click',function(e){
+ const b=e.target.closest('[data-foco-expand]');if(!b)return;
+ const key=state.unit+':'+b.getAttribute('data-foco-expand');
+ window.FOCO_ABERTO[key]=!window.FOCO_ABERTO[key];renderFocus();
+});
+
 function renderFocus(){
   const head = document.getElementById('focusHead');
   const body = document.getElementById('focusBody');
@@ -1777,10 +1813,10 @@ function renderFocus(){
       return `<span class="focus-change ${classe}">${simbolo} ${Math.abs(variacao).toFixed(1).replace('.',',')}%${detalhe}</span>`;
     };
     return `<tr>
-      <td class="focus-name"><span class="focus-rank">${posicao+1}</span>${produto.nome}<span class="focus-unit">${produto.unidade}${produto.operacao==='vila_gourmet'?' · Vila Gourmet':produto.operacao==='vila_fit'?' · Vila Fit':''}</span></td>
+      <td class="focus-name"><span class="focus-rank">${posicao+1}</span>${produto.detalhar?`<button type="button" data-foco-expand="${idx}" aria-expanded="${!!window.FOCO_ABERTO[state.unit+":"+idx]}" style="cursor:pointer;margin-right:7px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:2px 7px">${window.FOCO_ABERTO[state.unit+":"+idx]?"−":"+"}</button>`:""}${produto.nome}<span class="focus-unit">${produto.unidade}${produto.operacao==='vila_gourmet'?' · Vila Gourmet':produto.operacao==='vila_fit'?' · Vila Fit':''}</span></td>
       ${valores.map((v,i)=>`<td class="focus-value ${i===valores.length-1?'current':''}">${formatar(v)}${comparativo(i)}</td>`).join('')}
       <td class="focus-value">${formatar(total)}</td>
-    </tr>`;
+    </tr>${produto.detalhar&&window.FOCO_ABERTO[state.unit+":"+idx]?focoDetalhes(produto):""}`;
   }).join('');
 }
 
