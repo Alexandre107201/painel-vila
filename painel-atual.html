@@ -397,16 +397,8 @@
     <div class="hands-cmv-scope">Vila Fit / Vila Gourmet · consolidado</div>
     <div class="runrate-basis" id="handsCmvNote" role="status">Consultando…</div></div>
     <div class="hands-cmv-actions">
-      <button class="import-secondary" id="handsCmvLogin" type="button">Entrar para consultar</button>
       <button class="import-secondary" id="handsCmvRefresh" type="button">Atualizar CMV</button>
-      <button class="import-secondary" id="handsCmvLogout" type="button">Sair</button>
     </div>
-    <form id="handsCmvForm" hidden>
-      <p class="runrate-basis">Use seu acesso de administrador do painel.</p>
-      <label class="import-field">E-mail<input id="handsCmvEmail" type="email" autocomplete="username" required></label>
-      <label class="import-field">Senha<input id="handsCmvPassword" type="password" autocomplete="current-password" required></label>
-      <button class="import-primary" type="submit">Entrar</button>
-    </form>
   </section>
   <div class="runrate-card" id="runrateCard">
     <div class="runrate-label">Projeção de fechamento</div>
@@ -2094,21 +2086,17 @@ document.getElementById('openProduction').onclick=function(){screen.hidden=false
 
 
 <script>
-/* CMV Hands: leitura privada, independente dos filtros de vendas. */
+/* CMV Hands: consulta pública restrita ao indicador do mês atual. */
 (function(){
 'use strict';
 var URL_BASE='https://bbhtrxuaumhpqtbcgewc.supabase.co';
 var KEY='sb_publishable_VO0CBuxqDHhk3n5IwcFjBA_cDwfq0JK';
 var value=document.getElementById('handsCmvValue'),note=document.getElementById('handsCmvNote');
-var login=document.getElementById('handsCmvLogin'),form=document.getElementById('handsCmvForm');
-var saved=null,busy=false,lastLoad=0,sessionToken='';
+
+var saved=null,busy=false,lastLoad=0;
 function monthNow(){
  var parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).formatToParts(new Date());
  return parts.find(p=>p.type==='year').value+'-'+parts.find(p=>p.type==='month').value+'-01';
-}
-function session(){
- try {var s=JSON.parse(sessionStorage.getItem('painel_vila_import_session')||'null');
- return s&&s.access_token&&s.expires_at*1000>Date.now()+30000?s:null;}catch(e){return null;}
 }
 function clear(message){saved=null;value.textContent='—';value.style.color='';note.textContent=message;}
 function paint(){
@@ -2121,21 +2109,17 @@ function paint(){
  note.textContent=(stale?'Desatualizado · última captura: ':'Capturado em ')+date.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+' · atualização a cada 60 min';
 }
 async function load(force){
- var s=session();
- login.hidden=!!s;
- if(!s){sessionToken='';clear('Entre com seu acesso de administrador para consultar.');return;}
- if(sessionToken!==s.access_token){saved=null;lastLoad=0;sessionToken=s.access_token;}
+
  paint();
  if(busy||(!force&&Date.now()-lastLoad<60000))return;
  busy=true;lastLoad=Date.now();
- var token=s.access_token,controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+ var controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
  try{
   var query=new URLSearchParams({select:'operation,competence,cmv_percent,captured_at',operation:'eq.Vila Fit / Vila Gourmet',competence:'eq.'+monthNow(),order:'captured_at.desc',limit:'1'});
-  var response=await fetch(URL_BASE+'/rest/v1/hands_cmv_captures?'+query,{headers:{apikey:KEY,Authorization:'Bearer '+token},signal:controller.signal,cache:'no-store'});
-  if(!session()||session().access_token!==token)return;
+  var response=await fetch(URL_BASE+'/rest/v1/hands_cmv_captures?'+query,{headers:{apikey:KEY},signal:controller.signal,cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   var rows=await response.json(),r=rows[0];
-  if(!r){clear('Sem captura disponível para este acesso no mês atual.');return;}
+  if(!r){clear('Aguardando captura do mês atual.');return;}
   var n=Number(r.cmv_percent),time=Date.parse(r.captured_at);
   if(r.operation!=='Vila Fit / Vila Gourmet'||r.competence!==monthNow()||r.cmv_percent===null||!Number.isFinite(n)||n<0||n>100||!Number.isFinite(time)||time>Date.now()+60000)throw Error('Captura inválida');
   saved=r;paint();
@@ -2144,25 +2128,8 @@ async function load(force){
   else clear('Não foi possível consultar o CMV. Tente atualizar.');
  }finally{clearTimeout(timer);busy=false;}
 }
-login.onclick=function(){form.hidden=!form.hidden;if(!form.hidden)document.getElementById('handsCmvEmail').focus();};
-form.onsubmit=async function(e){
- e.preventDefault();var button=form.querySelector('button[type="submit"]'),password=document.getElementById('handsCmvPassword');
- button.disabled=true;note.textContent='Validando acesso…';
- var controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
- try{
-  var response=await fetch(URL_BASE+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},signal:controller.signal,
-   body:JSON.stringify({email:document.getElementById('handsCmvEmail').value.trim(),password:password.value})});
-  if(!response.ok)throw Error('Login');
-  var s=await response.json();
-  if(!s.access_token||!s.expires_at)throw Error('Sessão');
-  sessionStorage.setItem('painel_vila_import_session',JSON.stringify(s));form.hidden=true;
-  await load(true);
- }catch(e){clear('Não foi possível entrar. Confira seu acesso e tente novamente.');}
- finally{password.value='';clearTimeout(timer);button.disabled=false;}
-};
 document.getElementById('handsCmvRefresh').onclick=function(){load(true);};
-document.getElementById('handsCmvLogout').onclick=function(){sessionStorage.removeItem('painel_vila_import_session');form.hidden=true;load(true);};
-setInterval(function(){if(!document.hidden)load(false);},5000);
+setInterval(function(){if(!document.hidden)load(false);},60000);
 window.addEventListener('focus',function(){load(false);});
 document.addEventListener('visibilitychange',function(){if(!document.hidden)load(false);});
 load(true);
