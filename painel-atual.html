@@ -722,7 +722,7 @@
          { nome: "Drinks", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /\bDRINK(S)?\b|COQUETEL|CAIPIRINHA|CAIPIROSKA|GIN TONICA|MOSCOW MULE|APEROL SPRITZ|NEGRONI|MOJITO|MARGARITA|SEX ON THE BEACH|PINA COLADA/.test(n); } },
          { nome: "Doces e confeitaria", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(DOCE|BOLO|PUDIM|BRIGADEIRO|MOUSSE|SOBREMESA|CHOCOLATE|KINDER|COOKIE|COPO DA FELICIDADE|SORVETE|BROWNIE|BOMBOM|TRUFA)/.test(n); } },
          { nome: "Pratos · Vila Gourmet", unidade: "R$", casa: 2, medida: "valor", operacao: "vila_gourmet", detalhar: true, teste: function (n) { return /(PRATO|PARMEGIANA|KIDS |MINI FRANGO|SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|LIMAO SICILIANO|CARNE SECA E CAMBOTIA|GO KIDS|POWER TILAPIA|FILE DE FRANGO|FILE DE TILAPIA|ANCHO|BABY BEFF|BIFE A CAVALO|ISCA DE FRANGO|PICANHA|FUNGHI|CLASSICO PROTEICO|OMELETE PROTEICO|GO CRISPY)/.test(n); } },
-         { nome: "Grelhados", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(GRELHADO|FILE|TILAPIA|BABY BE|ANCHO|PICANHA)/.test(n); } },
+         { nome: "Grelhados", unidade: "R$", casa: 2, medida: "valor", detalhar: true, teste: function (n) { return /(GRELHADO|FILE|TILAPIA|BABY BE|ANCHO|PICANHA)/.test(n); } },
          { nome: "Espetinhos", unidade: "R$", casa: 2, medida: "valor", detalhar: true, teste: function (n) { return /(ESPETINHO|ESPETO )/.test(n); } },
          { nome: "Buffet de massas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /BUFFET.*MASSA/.test(n); } }
    ];
