@@ -445,7 +445,7 @@
   <div class="panel focus-panel">
     <div class="panel-head">
       <h2>Ranking semanal dos produtos foco</h2>
-      <span class="panel-note">Ranking pela variação % da última semana fechada · semana atual aparece apenas para acompanhamento</span>
+      <span class="panel-note">Produtos em ordem alfabética (A–Z) · semana atual aparece apenas para acompanhamento</span>
     </div>
     <div class="focus-scroll">
       <table class="focus-table">
@@ -1794,14 +1794,9 @@ function renderFocus(){
     const anterior = Number((semana.comparacaoValores || [])[idx] || 0);
     return anterior > 0 ? ((atual-anterior)/anterior)*100 : null;
   };
-  const produtosOrdenados = window.PRODUTOS_FOCO.map((produto, idx)=>({produto,idx,variacao:variacaoProduto(idx)}))
-    .sort((a,b)=>{
-      if(a.variacao===null && b.variacao===null) return a.idx-b.idx;
-      if(a.variacao===null) return 1;
-      if(b.variacao===null) return -1;
-      return b.variacao-a.variacao || a.idx-b.idx;
-    });
-  head.innerHTML = '<tr><th>Ranking · produto foco</th>' + semanas.map((s,i)=>`<th>${s.rotulo}${i===indiceSemanaRanking?' · ranking':s.atual?' *':''}</th>`).join('') + '<th>Total 4 fechadas</th></tr>';
+  const produtosOrdenados = window.PRODUTOS_FOCO.map((produto, idx)=>({produto,idx}))
+    .sort((a,b)=>a.produto.nome.localeCompare(b.produto.nome,'pt-BR',{sensitivity:'base'}) || a.idx-b.idx);
+  head.innerHTML = '<tr><th>Produto foco · A–Z</th>' + semanas.map((s,i)=>`<th>${s.rotulo}${i===indiceSemanaRanking?' · fechada':s.atual?' *':''}</th>`).join('') + '<th>Total 4 fechadas</th></tr>';
   body.innerHTML = produtosOrdenados.map(({produto,idx},posicao)=>{
     const valores = semanas.map(s=>Number(s.valores[idx] || 0));
     const total = valores.slice(0,-1).reduce((s,v)=>s+v,0);
