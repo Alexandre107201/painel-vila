@@ -14,6 +14,12 @@ ROOT = Path(__file__).resolve().parent
 MONTH_NAMES = ['Janeiro','Fevereiro','Mar\u00e7o','Abril','Maio','Junho',
                'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
+STEP = 'inicio'
+def step(message):
+    global STEP
+    STEP = message
+    print('ETAPA: '+message,flush=True)
+
 def snapshot_month(page, expected):
     operation = page.locator('header button[aria-haspopup="menu"]').filter(
         has=page.locator('img[alt="VILA FIT / VILA GOURMET"]')).filter(visible=True)
@@ -74,10 +80,13 @@ def calendar_scope(dialog, index):
 def navigate(dialog, index, year, month):
     expected_name = MONTH_NAMES[month-1]
     for _ in range(15):
+        step('localizar calendario '+str(index+1)+' para '+expected_name+'/'+str(year))
         root = calendar_scope(dialog,index)
+        print('CALENDARIO '+str(index+1)+': '+repr(root.locator('button:not([name="day"])').all_inner_texts()),flush=True)
         if (root.get_by_role('button',name=expected_name,exact=True).count() == 1
             and root.get_by_role('button',name=str(year),exact=True).count() == 1):
             return
+        step('voltar um mes no calendario '+str(index+1))
         root.locator('button:has(svg.lucide-chevron-left)').click()
     raise ValueError('Nao alcancei o mes solicitado; leitura cancelada')
 
@@ -86,19 +95,23 @@ def select_month(page, competence):
     last = calendar.monthrange(year,month)[1]
     start = f'{year:04d}-{month:02d}-01'
     end = f'{year:04d}-{month:02d}-{last:02d}'
+    step('abrir Periodo Personalizado')
     page.get_by_role('button',name='Per\u00edodo Personalizado',exact=True).click()
     dialog = page.get_by_role('dialog').filter(has_text='Selecione o per\u00edodo')
     if dialog.count()!=1:
         raise ValueError('Dialogo de datas ausente ou ambiguo')
     navigate(dialog,0,year,month)
     navigate(dialog,1,year,month)
+    step('selecionar dia 1 do mes inicial')
     calendar_scope(dialog,0).get_by_role('button',name='1',exact=True).first.click()
     if not dialog.is_visible():
         raise ValueError('Filtro fechou antes de selecionar a data final')
     navigate(dialog,1,year,month)
+    step('selecionar dia '+str(last)+' do mes final')
     calendar_scope(dialog,1).get_by_role('button',name=str(last),exact=True).last.click()
     if dialog.is_visible():
         page.keyboard.press('Escape')
+    step('aguardar atualizacao apos datas')
     page.wait_for_load_state('networkidle',timeout=45000)
     return start,end
 
@@ -118,6 +131,7 @@ def read_month(page, competence):
     page.on('response',record_response)
     try:
         start,end = select_month(page,competence)
+        step('confirmar resposta ao clicar Atualizar')
         with page.expect_response(lambda r:r.request.resource_type in ('xhr','fetch')
                                   and '/rest/v1/rpc' in r.url,timeout=45000) as pending:
             page.get_by_role('button',name='Atualizar',exact=True).click()
@@ -160,10 +174,13 @@ def main():
                 page=context.new_page()
                 page.set_default_timeout(20000)
                 try:
+                    step('abrir pagina DRE')
                     page.goto('https://www.clientes.hands-ai.com.br/dre',
                               wait_until='domcontentloaded',timeout=60000)
+                    step('aguardar titulo DRE')
                     page.get_by_role('heading',name='Demonstrativo de Resultados do Exerc\u00edcio',
                                      exact=True).wait_for(timeout=60000)
+                    step('aguardar carregamento inicial')
                     page.wait_for_load_state('networkidle',timeout=45000)
                     result=read_month(page,competence)
                     results.append(result)
@@ -183,5 +200,8 @@ if __name__=='__main__':
         main()
     except Exception as erro:
         safe=str(erro) if isinstance(erro,ValueError) else type(erro).__name__
+        if isinstance(erro,BrowserTimeout):
+            safe += ' | '+str(erro).splitlines()[0][:180]
+        safe += ' | ETAPA: '+STEP
         print('LEITURA NAO CONCLUIDA: '+safe,file=sys.stderr)
         raise SystemExit(1)
