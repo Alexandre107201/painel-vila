@@ -37,6 +37,12 @@ def validated_percent(percent, costs_text, revenue_text):
         raise ValueError('Percentual fora de 0 a 100')
     return format(value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP), 'f').replace('.', ',') + '%'
 
+
+def empty_report_confirmed(percent, costs, revenue):
+    # Formato observado no Hands: tres tracos indicam mes sem lancamentos.
+    # Campos vazios, mistos ou outros textos continuam sendo rejeitados.
+    return tuple(str(value).strip() for value in (percent, costs, revenue)) == ('-', '-', '-')
+
 def previous_month(current):
     return (date.fromisoformat(current) - timedelta(days=1)).replace(day=1).isoformat()
 
@@ -80,6 +86,9 @@ def snapshot(page, expected, tab_name):
             raise ValueError('Linha financeira ausente ou ambigua')
         return matches[0]
     costs, revenue = row('CUSTOS COM MERCADORIAS'), row('RECEITAS SOBRE VENDAS')
+    if empty_report_confirmed(costs[indexes[2]], costs[indexes[1]], revenue[indexes[1]]):
+        return dict(operation=OPERATION, competence=expected, cmv_percent=0.0,
+                    merchandise_cost=0.0, sales_revenue=0.0)
     pct = validated_percent(costs[indexes[2]], costs[indexes[1]], revenue[indexes[1]])
     if number_br(costs[indexes[1]]) == 0 and number_br(revenue[indexes[1]]) == 0 and pct == '0,00%':
         # Competencia, operacao, linhas e cabecalhos ja foram conferidos.
@@ -173,7 +182,8 @@ def run(dry_run=False, closed=False):
             pct = f"{payload['cmv_percent']:.2f}".replace('.', ',')
             print(('LEITURA VALIDADA' if dry_run else 'GRAVACAO CONFIRMADA') +
                   ' | ' + payload['operation'] + ' | ' + expected[:7] + ' | CMV ' + pct + '%' +
-                  (' | REVISAO DO FECHAMENTO ATE DIA 15' if closed else ' | MES ATUAL'))
+                  (' | REVISAO DO FECHAMENTO ATE DIA 15' if closed else ' | MES ATUAL') +
+                  (' | SEM LANCAMENTOS NO HANDS' if payload['sales_revenue'] == 0 else ''))
             print('SEM GRAVAR NO BANCO' if dry_run else 'Captura enviada ao banco; ultima leitura valida preservada no historico.')
         finally:
             browser.close()
@@ -193,6 +203,7 @@ if __name__ == '__main__':
             isinstance(e, RuntimeError) and str(e).startswith('Supabase HTTP ')) else type(e).__name__
         print('CAPTURA NAO CONCLUIDA: ' + safe, file=sys.stderr)
         sys.exit(1)
+
 
 
 
