@@ -339,6 +339,7 @@
         <button class="period-btn" data-period="semana">Semana atual</button>
         <button class="period-btn" data-period="semana_anterior" disabled title="Carregando a última semana completa">Semana anterior</button>
         <button class="period-btn" data-period="mes">Mês atual</button>
+        <button class="period-btn" data-period="ultimo_fechado">Último mês fechado</button>
         <button class="period-btn" data-period="setembro">Setembro/2026</button>
         <button class="period-btn" data-period="agosto">Agosto/2026</button>
       </div>
@@ -903,8 +904,8 @@
      if(p==="personalizado"){
        ini=dataSelecionada(document.getElementById("dateFrom").value);fim=dataSelecionada(document.getElementById("dateTo").value);
        if(!Number.isFinite(+ini)||!Number.isFinite(+fim)||ini>fim||fim>hoje)throw new Error("Escolha datas válidas, em ordem, até hoje.");
-     }else if(p==="mes"||p==="agosto"||p==="setembro"){
-       ini=p==="agosto"?dataSelecionada("2026-08-01"):p==="setembro"?dataSelecionada("2026-09-01"):new Date(hoje.getFullYear(),hoje.getMonth(),1,12);
+     }else if(p==="mes"||p==="ultimo_fechado"||p==="agosto"||p==="setembro"){
+       ini=p==="agosto"?dataSelecionada("2026-08-01"):p==="setembro"?dataSelecionada("2026-09-01"):new Date(hoje.getFullYear(),hoje.getMonth()-(p==="ultimo_fechado"?1:0),1,12);
        fim=fimMes(ini);if(fim>hoje)fim=hoje;
      }else{
        fim=p==="ontem"?addDias(hoje,-1):p==="semana_anterior"?addDias(inicioSemana(hoje),-1):hoje;
@@ -1017,6 +1018,7 @@
    function iniciarDadosVivos(){
      manifestoEmCurso=null;var hoje=hojeBrasil();
      document.querySelector('[data-period="mes"]').textContent=hoje.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+      document.querySelector('[data-period="ultimo_fechado"]').textContent="Fechado · "+new Date(hoje.getFullYear(),hoje.getMonth()-1,1,12).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
      document.querySelectorAll(".period-btn").forEach(function(b){b.disabled=false;b.title="";});
      document.getElementById("dateFrom").max=iso(hoje);document.getElementById("dateTo").max=iso(hoje);
      ultimoRefresh=Date.now();carregarPeriodo();
@@ -1030,6 +1032,7 @@
        if(JSON.stringify(anterior)!==JSON.stringify(xs)||!atual||atual.inicio!==iso(i.inicio)||atual.fim!==iso(i.fim)){
          var hoje=hojeBrasil();
          document.querySelector('[data-period="mes"]').textContent=hoje.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+      document.querySelector('[data-period="ultimo_fechado"]').textContent="Fechado · "+new Date(hoje.getFullYear(),hoje.getMonth()-1,1,12).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
          document.getElementById("dateFrom").max=iso(hoje);document.getElementById("dateTo").max=iso(hoje);
          carregarPeriodo(true,xs);
        }
