@@ -61,13 +61,13 @@ def snapshot_month(page, expected):
 
 
 def calendar_scope(dialog, index):
-    arrows = dialog.locator('button').filter(has=dialog.locator('svg.lucide-chevron-left'))
+    arrows = dialog.locator('button:has(svg.lucide-chevron-left)')
     if arrows.count() != 2:
         raise ValueError('Esperava dois calendarios independentes')
     root = arrows.nth(index).locator('xpath=ancestor::div[.//button[@name="day"]][1]')
     if root.count() != 1 or root.locator('button[name="day"]').count() < 28:
         raise ValueError('Calendario nao identificado com seguranca')
-    if root.locator('button').filter(has=root.locator('svg.lucide-chevron-left')).count() != 1:
+    if root.locator('button:has(svg.lucide-chevron-left)').count() != 1:
         raise ValueError('Escopo do calendario ambiguo')
     return root
 
@@ -78,7 +78,7 @@ def navigate(dialog, index, year, month):
         if (root.get_by_role('button',name=expected_name,exact=True).count() == 1
             and root.get_by_role('button',name=str(year),exact=True).count() == 1):
             return
-        root.locator('button').filter(has=root.locator('svg.lucide-chevron-left')).click()
+        root.locator('button:has(svg.lucide-chevron-left)').click()
     raise ValueError('Nao alcancei o mes solicitado; leitura cancelada')
 
 def select_month(page, competence):
