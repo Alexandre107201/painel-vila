@@ -4,16 +4,34 @@ import json
 import re
 import sys
 from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from playwright.sync_api import sync_playwright, TimeoutError as BrowserTimeout
 from capture import api
-from core import OPERATION, month_now, validate
+from core import OPERATION, month_now, validate, number_br
 from setup_writer import EXPECTED_ID, EXPECTED_EMAIL, PUBLIC_CONFIG
 import vault
 
 ROOT = Path(__file__).resolve().parent
 MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+
+
+class CMVUnavailable(ValueError):
+    pass
+
+def validated_percent(percent, costs_text, revenue_text):
+    costs = number_br(costs_text)
+    revenue = number_br(revenue_text)
+    if revenue == 0 and costs >= 0:
+        raise CMVUnavailable('Receitas zeradas; CMV ainda sem base de calculo')
+    text = str(percent).replace('\u00a0', ' ').strip()
+    if not re.fullmatch(r'\d{1,3}(?:[.,]\d{1,6})?\s*%', text):
+        raise ValueError('Percentual Hands nao reconhecido: ' + repr(text[:40]))
+    value = Decimal(text.removesuffix('%').strip().replace(',', '.'))
+    if not 0 <= value <= 100:
+        raise ValueError('Percentual fora de 0 a 100')
+    return format(value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP), 'f').replace('.', ',') + '%'
 
 def previous_month(current):
     return (date.fromisoformat(current) - timedelta(days=1)).replace(day=1).isoformat()
@@ -58,10 +76,8 @@ def snapshot(page, expected, tab_name):
             raise ValueError('Linha financeira ausente ou ambigua')
         return matches[0]
     costs, revenue = row('CUSTOS COM MERCADORIAS'), row('RECEITAS SOBRE VENDAS')
-    pct = costs[indexes[2]]
-    if not re.fullmatch(r'\d{1,3}(?:[.,]\d{1,2})?\s*%', pct):
-        raise ValueError('Formato do percentual Hands mudou')
-    return validate(dict(operation=OPERATION, month=expected, percent=pct.replace('.', ','),
+    pct = validated_percent(costs[indexes[2]], costs[indexes[1]], revenue[indexes[1]])
+    return validate(dict(operation=OPERATION, month=expected, percent=pct,
                          costs=costs[indexes[1]], revenue=revenue[indexes[1]]), expected)
 
 def refresh_and_capture(page, expected, tab_name):
@@ -73,7 +89,13 @@ def refresh_and_capture(page, expected, tab_name):
             responses.append(response.status)
     page.on('response', record_response)
     try:
-        page.get_by_role('button', name='Atualizar', exact=True).click()
+        # O Hands dispara a consulta de forma assincrona apos o clique.
+        with page.expect_response(
+            lambda r: r.request.resource_type in ('xhr', 'fetch')
+            and '/rest/v1/rpc' in r.url, timeout=45000
+        ) as pending:
+            page.get_by_role('button', name='Atualizar', exact=True).click()
+        pending.value.body()
         page.wait_for_load_state('networkidle', timeout=45000)
         if not responses or any(status >= 400 for status in responses):
             raise ValueError('Atualizacao do Hands nao confirmada; nenhum valor sera gravado')
@@ -84,6 +106,8 @@ def refresh_and_capture(page, expected, tab_name):
     for _ in range(20):
         try:
             current = snapshot(page, expected, tab_name)
+        except CMVUnavailable:
+            raise
         except (ValueError, BrowserTimeout) as erro:
             current = None
             last_error = str(erro) if isinstance(erro, ValueError) else 'Tempo de leitura excedido'
@@ -153,9 +177,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
     try:
         run(args.dry_run, args.closed)
+    except CMVUnavailable as e:
+        print('SEM CMV VALIDAVEL: ' + str(e) + '; ultima leitura valida mantida.')
+        sys.exit(1 if args.closed else 0)
     except Exception as e:
         safe = str(e) if isinstance(e, ValueError) or (
             isinstance(e, RuntimeError) and str(e).startswith('Supabase HTTP ')) else type(e).__name__
         print('CAPTURA NAO CONCLUIDA: ' + safe, file=sys.stderr)
         sys.exit(1)
+
 
