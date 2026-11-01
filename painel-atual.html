@@ -393,7 +393,7 @@
 </div>
 
   <section class="hands-cmv-card" aria-label="CMV consolidado Hands">
-    <div><div class="ticket-label">CMV % · Hands · última referência</div>
+    <div><div class="ticket-label">CMV % · Hands · mês selecionado</div>
     <div class="ticket-value num" id="handsCmvValue">—</div>
     <div class="hands-cmv-scope">Vila Fit / Vila Gourmet · consolidado</div>
     <div class="runrate-basis" id="handsCmvNote" role="status">Consultando…</div></div>
@@ -2129,58 +2129,81 @@ document.getElementById('openProduction').onclick=function(){screen.hidden=false
 
 
 <script>
-/* CMV Hands: ultima competencia valida, inclusive apos o fechamento. */
+/* CMV Hands: indicador mensal da competencia selecionada no dashboard. */
 (function(){
 'use strict';
 var URL_BASE='https://bbhtrxuaumhpqtbcgewc.supabase.co';
 var KEY='sb_publishable_VO0CBuxqDHhk3n5IwcFjBA_cDwfq0JK';
 var value=document.getElementById('handsCmvValue'),note=document.getElementById('handsCmvNote');
-var CACHE_KEY='vila-hands-cmv-last-v2',saved=null,busy=false,lastLoad=0;
-function monthNow(){
- var parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).formatToParts(new Date());
- return parts.find(p=>p.type==='year').value+'-'+parts.find(p=>p.type==='month').value+'-01';
+var CACHE_KEY='vila-hands-cmv-months-v3',saved={},lastLoads={},active='',controller=null,version=0,busy=false;
+function todayBrasil(){
+ var p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ return ['year','month','day'].map(k=>p.find(x=>x.type===k).value).join('-');
 }
-function valid(r){
- if(!r||r.operation!=='Vila Fit / Vila Gourmet'||!(/^\d{4}-(0[1-9]|1[0-2])-01$/).test(r.competence)||r.competence>monthNow())return false;
+function monthNow(){return todayBrasil().slice(0,7)+'-01';}
+function previousMonth(){var d=new Date(monthNow()+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()-1);return d.toISOString().slice(0,7)+'-01';}
+function selectedMonth(){
+ var period=state.period;
+ if(period==='ultimo_fechado')return previousMonth();
+ if(period==='agosto')return '2026-08-01';
+ if(period==='setembro')return '2026-09-01';
+ if(period==='hoje'||period==='mes')return monthNow();
+ if(period==='ontem'){var d=new Date(todayBrasil()+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-1);return d.toISOString().slice(0,7)+'-01';}
+ var data=DATA[state.unit]&&DATA[state.unit][period],end=data&&data.fim;
+ if(period==='personalizado'){var input=document.getElementById('dateTo');end=input&&input.value||end;}
+ return /^\d{4}-\d{2}-\d{2}$/.test(end||'')?end.slice(0,7)+'-01':monthNow();
+}
+function valid(r,month){
+ if(!r||r.operation!=='Vila Fit / Vila Gourmet'||r.competence!==month||month>monthNow())return false;
  var n=Number(r.cmv_percent),time=Date.parse(r.captured_at);
  return r.cmv_percent!==null&&r.cmv_percent!==''&&Number.isFinite(n)&&n>=0&&n<=100&&Number.isFinite(time)&&time<=Date.now()+60000;
 }
+function monthLabel(month){return new Date(month+'T12:00:00Z').toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo',month:'long',year:'numeric'});}
 function clear(message){value.textContent='—';value.style.color='';note.textContent=message;}
-function paint(){
- if(!valid(saved))return;
- var previous=saved.competence<monthNow();
- var stale=Date.now()-Date.parse(saved.captured_at)>(previous?93600000:7200000);
- value.textContent=Number(saved.cmv_percent).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
+function paint(month){
+ var r=saved[month];
+ if(!valid(r,month)){clear('Consultando CMV de '+monthLabel(month)+'…');return;}
+ var previous=month<monthNow(),review=month===previousMonth()&&Number(todayBrasil().slice(8))<=15;
+ var stale=(!previous||review)&&Date.now()-Date.parse(r.captured_at)>(previous?93600000:7200000);
+ value.textContent=Number(r.cmv_percent).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
  value.style.color=stale?'var(--gourmet)':'var(--text)';
- var competence=new Date(saved.competence+'T12:00:00-03:00').toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo',month:'long',year:'numeric'});
- var date=new Date(saved.captured_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
- note.textContent='Competência: '+competence+(previous?' · mês fechado; última referência disponível':' · mês em andamento')+' · capturado em '+date+(stale?' · captura desatualizada':'');
+ var date=new Date(r.captured_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+ note.textContent='Competência: '+monthLabel(month)+(previous?' · mês fechado':' · mês em andamento')+' · capturado em '+date+(stale?' · captura desatualizada':'');
+ var d=DATA[state.unit]&&DATA[state.unit][state.period];
+ if(d&&d.inicio&&d.fim&&d.inicio.slice(0,7)!==d.fim.slice(0,7))note.textContent+=' · CMV mensal do último mês do período';
 }
-try{var cache=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(valid(cache))saved=cache;}catch(e){}
+try{var cache=JSON.parse(localStorage.getItem(CACHE_KEY)||'{}');Object.keys(cache).forEach(function(k){if(valid(cache[k],k))saved[k]=cache[k];});}catch(e){}
 async function load(force){
- paint();
- if(busy||(!force&&Date.now()-lastLoad<60000))return;
- busy=true;lastLoad=Date.now();
- var controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+ var month=selectedMonth(),changed=month!==active;
+ if(changed){active=month;version++;if(controller)controller.abort();busy=false;}
+ paint(month);
+ if(busy||(!force&&!changed&&Date.now()-(lastLoads[month]||0)<60000))return;
+ busy=true;lastLoads[month]=Date.now();
+ var currentVersion=++version,requestController=new AbortController();controller=requestController;
+ var timer=setTimeout(()=>requestController.abort(),15000);
  try{
-  var response=await fetch(URL_BASE+'/rest/v1/rpc/hands_cmv_latest_v1',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:'{}',signal:controller.signal,cache:'no-store'});
+  var response=await fetch(URL_BASE+'/rest/v1/rpc/hands_cmv_month_v1',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({p_competence:month}),signal:requestController.signal,cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   var r=await response.json();
+  if(currentVersion!==version||selectedMonth()!==month)return;
   if(!r){
-   if(saved){paint();note.textContent+=' · sem nova captura; mantendo última leitura';}
-   else clear('Nenhuma captura válida disponível.');
+   if(valid(saved[month],month)){paint(month);note.textContent+=' · sem nova captura; mantendo última leitura deste mês';}
+   else clear('CMV ainda não capturado para '+monthLabel(month)+'.');
    return;
   }
-  if(!valid(r))throw Error('Captura inválida');
-  saved=r;
-  try{localStorage.setItem(CACHE_KEY,JSON.stringify(r));}catch(e){}
-  paint();
+  if(!valid(r,month))throw Error('Captura de competência inválida');
+  saved[month]=r;
+  try{localStorage.setItem(CACHE_KEY,JSON.stringify(saved));}catch(e){}
+  paint(month);
  }catch(e){
-  if(saved){paint();note.textContent+=' · falha na consulta; mantendo última leitura';}
-  else clear('Não foi possível consultar o CMV. Tente atualizar.');
- }finally{clearTimeout(timer);busy=false;}
+  if(currentVersion!==version||selectedMonth()!==month)return;
+  if(valid(saved[month],month)){paint(month);note.textContent+=' · falha na consulta; mantendo última leitura deste mês';}
+  else clear('Não foi possível consultar o CMV de '+monthLabel(month)+'.');
+ }finally{clearTimeout(timer);if(currentVersion===version){busy=false;controller=null;}}
 }
 document.getElementById('handsCmvRefresh').onclick=function(){load(true);};
+var renderCmvAnterior=renderAll;
+renderAll=function(){var result=renderCmvAnterior.apply(this,arguments);load(false);return result;};
 setInterval(function(){if(!document.hidden)load(false);},60000);
 window.addEventListener('focus',function(){load(false);});
 document.addEventListener('visibilitychange',function(){if(!document.hidden)load(false);});
