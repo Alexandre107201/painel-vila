@@ -1018,7 +1018,7 @@
    function iniciarDadosVivos(){
      manifestoEmCurso=null;var hoje=hojeBrasil();
      document.querySelector('[data-period="mes"]').textContent=hoje.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
-      document.querySelector('[data-period="ultimo_fechado"]').textContent="Fechado · "+new Date(hoje.getFullYear(),hoje.getMonth()-1,1,12).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+      document.querySelector('[data-period="ultimo_fechado"]').textContent=new Date(hoje.getFullYear(),hoje.getMonth()-1,1,12).toLocaleDateString("pt-BR",{month:"long"}).replace(/^./,function(letra){return letra.toUpperCase();});
      document.querySelectorAll(".period-btn").forEach(function(b){b.disabled=false;b.title="";});
      document.getElementById("dateFrom").max=iso(hoje);document.getElementById("dateTo").max=iso(hoje);
      ultimoRefresh=Date.now();carregarPeriodo();
@@ -1032,7 +1032,7 @@
        if(JSON.stringify(anterior)!==JSON.stringify(xs)||!atual||atual.inicio!==iso(i.inicio)||atual.fim!==iso(i.fim)){
          var hoje=hojeBrasil();
          document.querySelector('[data-period="mes"]').textContent=hoje.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
-      document.querySelector('[data-period="ultimo_fechado"]').textContent="Fechado · "+new Date(hoje.getFullYear(),hoje.getMonth()-1,1,12).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+      document.querySelector('[data-period="ultimo_fechado"]').textContent=new Date(hoje.getFullYear(),hoje.getMonth()-1,1,12).toLocaleDateString("pt-BR",{month:"long"}).replace(/^./,function(letra){return letra.toUpperCase();});
          document.getElementById("dateFrom").max=iso(hoje);document.getElementById("dateTo").max=iso(hoje);
          carregarPeriodo(true,xs);
        }
