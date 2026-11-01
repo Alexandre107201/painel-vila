@@ -393,7 +393,7 @@
 </div>
 
   <section class="hands-cmv-card" aria-label="CMV consolidado Hands">
-    <div><div class="ticket-label">CMV % · Hands · mês atual</div>
+    <div><div class="ticket-label">CMV % · Hands · última referência</div>
     <div class="ticket-value num" id="handsCmvValue">—</div>
     <div class="hands-cmv-scope">Vila Fit / Vila Gourmet · consolidado</div>
     <div class="runrate-basis" id="handsCmvNote" role="status">Consultando…</div></div>
@@ -2129,45 +2129,54 @@ document.getElementById('openProduction').onclick=function(){screen.hidden=false
 
 
 <script>
-/* CMV Hands: consulta pública restrita ao indicador do mês atual. */
+/* CMV Hands: ultima competencia valida, inclusive apos o fechamento. */
 (function(){
 'use strict';
 var URL_BASE='https://bbhtrxuaumhpqtbcgewc.supabase.co';
 var KEY='sb_publishable_VO0CBuxqDHhk3n5IwcFjBA_cDwfq0JK';
 var value=document.getElementById('handsCmvValue'),note=document.getElementById('handsCmvNote');
-
-var saved=null,busy=false,lastLoad=0;
+var CACHE_KEY='vila-hands-cmv-last-v2',saved=null,busy=false,lastLoad=0;
 function monthNow(){
  var parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).formatToParts(new Date());
  return parts.find(p=>p.type==='year').value+'-'+parts.find(p=>p.type==='month').value+'-01';
 }
-function clear(message){saved=null;value.textContent='—';value.style.color='';note.textContent=message;}
+function valid(r){
+ if(!r||r.operation!=='Vila Fit / Vila Gourmet'||!(/^\d{4}-(0[1-9]|1[0-2])-01$/).test(r.competence)||r.competence>monthNow())return false;
+ var n=Number(r.cmv_percent),time=Date.parse(r.captured_at);
+ return r.cmv_percent!==null&&r.cmv_percent!==''&&Number.isFinite(n)&&n>=0&&n<=100&&Number.isFinite(time)&&time<=Date.now()+60000;
+}
+function clear(message){value.textContent='—';value.style.color='';note.textContent=message;}
 function paint(){
- if(!saved)return;
- if(saved.competence!==monthNow()){clear('Aguardando captura do mês atual.');return;}
- var age=Date.now()-Date.parse(saved.captured_at),stale=age>7200000;
+ if(!valid(saved))return;
+ var previous=saved.competence<monthNow();
+ var stale=Date.now()-Date.parse(saved.captured_at)>(previous?93600000:7200000);
  value.textContent=Number(saved.cmv_percent).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
  value.style.color=stale?'var(--gourmet)':'var(--text)';
- var date=new Date(saved.captured_at);
- note.textContent=(stale?'Desatualizado · última captura: ':'Capturado em ')+date.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+' · atualização a cada 60 min';
+ var competence=new Date(saved.competence+'T12:00:00-03:00').toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo',month:'long',year:'numeric'});
+ var date=new Date(saved.captured_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+ note.textContent='Competência: '+competence+(previous?' · mês fechado; última referência disponível':' · mês em andamento')+' · capturado em '+date+(stale?' · captura desatualizada':'');
 }
+try{var cache=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(valid(cache))saved=cache;}catch(e){}
 async function load(force){
-
  paint();
  if(busy||(!force&&Date.now()-lastLoad<60000))return;
  busy=true;lastLoad=Date.now();
  var controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
  try{
-  var query=new URLSearchParams({select:'operation,competence,cmv_percent,captured_at',operation:'eq.Vila Fit / Vila Gourmet',competence:'eq.'+monthNow(),order:'captured_at.desc',limit:'1'});
-  var response=await fetch(URL_BASE+'/rest/v1/hands_cmv_captures?'+query,{headers:{apikey:KEY},signal:controller.signal,cache:'no-store'});
+  var response=await fetch(URL_BASE+'/rest/v1/rpc/hands_cmv_latest_v1',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:'{}',signal:controller.signal,cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
-  var rows=await response.json(),r=rows[0];
-  if(!r){clear('Aguardando captura do mês atual.');return;}
-  var n=Number(r.cmv_percent),time=Date.parse(r.captured_at);
-  if(r.operation!=='Vila Fit / Vila Gourmet'||r.competence!==monthNow()||r.cmv_percent===null||!Number.isFinite(n)||n<0||n>100||!Number.isFinite(time)||time>Date.now()+60000)throw Error('Captura inválida');
-  saved=r;paint();
+  var r=await response.json();
+  if(!r){
+   if(saved){paint();note.textContent+=' · sem nova captura; mantendo última leitura';}
+   else clear('Nenhuma captura válida disponível.');
+   return;
+  }
+  if(!valid(r))throw Error('Captura inválida');
+  saved=r;
+  try{localStorage.setItem(CACHE_KEY,JSON.stringify(r));}catch(e){}
+  paint();
  }catch(e){
-  if(saved){paint();note.textContent+=' · falha na consulta; exibindo última leitura';}
+  if(saved){paint();note.textContent+=' · falha na consulta; mantendo última leitura';}
   else clear('Não foi possível consultar o CMV. Tente atualizar.');
  }finally{clearTimeout(timer);busy=false;}
 }
