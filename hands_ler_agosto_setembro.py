@@ -132,6 +132,29 @@ def select_month(page, competence):
     page.wait_for_load_state('networkidle',timeout=45000)
     return start,end
 
+
+def safe_date_evidence(bodies):
+    evidence = []
+    def walk(value, path='', date_context=False):
+        if isinstance(value,dict):
+            for key, child in value.items():
+                marked = re.search(r'date|data|start|end|from|to$|month|mes|period|ano|year|inicio|fim',str(key),re.I) is not None
+                walk(child,path+'.'+str(key),date_context or marked)
+        elif isinstance(value,list):
+            for index,child in enumerate(value):
+                walk(child,path+'['+str(index)+']',date_context)
+        elif date_context and isinstance(value,str):
+            if re.fullmatch(r'\d{4}-\d{2}(?:-\d{2})?(?:T[0-9:.,+Z-]+)?|\d{2}/\d{2}/\d{4}',value):
+                evidence.append({'campo':path,'data':value[:32]})
+    for body in bodies:
+        try:
+            walk(json.loads(body))
+        except (ValueError,TypeError):
+            pass
+    # Nunca imprime corpos completos, senhas, tokens ou valores financeiros.
+    unique = {json.dumps(item,sort_keys=True):item for item in evidence}
+    return list(unique.values())
+
 def read_month(page, competence):
     requests_seen = []
     statuses = []
@@ -160,6 +183,12 @@ def read_month(page, competence):
         end_br=datetime.strptime(end,'%Y-%m-%d').strftime('%d/%m/%Y')
         if not any((start in body or start_br in body) and (end in body or end_br in body)
                    for body in requests_seen):
+            print('DATAS DETECTADAS NAS CONSULTAS:',json.dumps(safe_date_evidence(requests_seen),ensure_ascii=False),flush=True)
+            try:
+                observed=snapshot_month(page,competence)
+                print('DRE EXIBIDA E VALIDADA:',observed['competence'],'CMV:',observed['cmv_percent'],flush=True)
+            except (ValueError,BrowserTimeout) as erro:
+                print('VALIDACAO DA DRE:',str(erro) if isinstance(erro,ValueError) else 'Tempo excedido',flush=True)
             raise ValueError('Datas inicial e final nao confirmadas nas consultas; nada importado')
         previous=None
         last_error='DRE historica nao estabilizou'
@@ -222,4 +251,5 @@ if __name__=='__main__':
         safe += ' | ETAPA: '+STEP
         print('LEITURA NAO CONCLUIDA: '+safe,file=sys.stderr)
         raise SystemExit(1)
+
 
