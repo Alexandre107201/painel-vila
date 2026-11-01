@@ -93,7 +93,21 @@ def navigate(dialog, index, year, month):
 
 def select_day(dialog, index, day, last=False):
     root = calendar_scope(dialog,index)
-    matches = root.locator('button[name="day"]').filter(has_text=re.compile(r'^\s*'+str(day)+r'\s*
+    buttons = root.locator('button[name="day"]')
+    matches = []
+    for position in range(buttons.count()):
+        button = buttons.nth(position)
+        if button.inner_text().strip() == str(day):
+            matches.append(button)
+    print('DIA '+str(day)+': '+str(len(matches))+' botao(oes) com texto exato',flush=True)
+    if not matches:
+        raise ValueError('Dia nao encontrado pelo texto no calendario')
+    button = matches[-1] if last else matches[0]
+    if not button.is_visible() or not button.is_enabled():
+        raise ValueError('Dia selecionado esta oculto ou desabilitado; nada importado')
+    button.click(timeout=10000)
+
+def select_month(page, competence):
     year,month = int(competence[:4]),int(competence[5:7])
     last = calendar.monthrange(year,month)[1]
     start = f'{year:04d}-{month:02d}-01'
@@ -208,128 +222,4 @@ if __name__=='__main__':
         safe += ' | ETAPA: '+STEP
         print('LEITURA NAO CONCLUIDA: '+safe,file=sys.stderr)
         raise SystemExit(1)
-))
-    count = matches.count()
-    print('DIA '+str(day)+': '+str(count)+' botao(oes) com texto exato',flush=True)
-    if count == 0:
-        raise ValueError('Dia nao encontrado pelo texto no calendario')
-    button = matches.last if last else matches.first
-    if not button.is_visible() or not button.is_enabled():
-        raise ValueError('Dia selecionado esta oculto ou desabilitado; nada importado')
-    button.click(timeout=10000)
 
-def select_month(page, competence):
-    year,month = int(competence[:4]),int(competence[5:7])
-    last = calendar.monthrange(year,month)[1]
-    start = f'{year:04d}-{month:02d}-01'
-    end = f'{year:04d}-{month:02d}-{last:02d}'
-    step('abrir Periodo Personalizado')
-    page.get_by_role('button',name='Per\u00edodo Personalizado',exact=True).click()
-    dialog = page.get_by_role('dialog').filter(has_text='Selecione o per\u00edodo')
-    if dialog.count()!=1:
-        raise ValueError('Dialogo de datas ausente ou ambiguo')
-    navigate(dialog,0,year,month)
-    navigate(dialog,1,year,month)
-    step('selecionar dia 1 do mes inicial')
-    calendar_scope(dialog,0).get_by_role('button',name='1',exact=True).first.click()
-    if not dialog.is_visible():
-        raise ValueError('Filtro fechou antes de selecionar a data final')
-    navigate(dialog,1,year,month)
-    step('selecionar dia '+str(last)+' do mes final')
-    calendar_scope(dialog,1).get_by_role('button',name=str(last),exact=True).last.click()
-    if dialog.is_visible():
-        page.keyboard.press('Escape')
-    step('aguardar atualizacao apos datas')
-    page.wait_for_load_state('networkidle',timeout=45000)
-    return start,end
-
-def read_month(page, competence):
-    requests_seen = []
-    statuses = []
-    def record_request(request):
-        if request.resource_type not in ('xhr','fetch'):
-            return
-        # Datas sao conferidas em memoria; nao imprime corpo, cabecalhos ou tokens.
-        body = request.post_data or ''
-        requests_seen.append(body)
-    def record_response(response):
-        if response.request.resource_type in ('xhr','fetch'):
-            statuses.append(response.status)
-    page.on('request',record_request)
-    page.on('response',record_response)
-    try:
-        start,end = select_month(page,competence)
-        step('confirmar resposta ao clicar Atualizar')
-        with page.expect_response(lambda r:r.request.resource_type in ('xhr','fetch')
-                                  and '/rest/v1/rpc' in r.url,timeout=45000) as pending:
-            page.get_by_role('button',name='Atualizar',exact=True).click()
-        pending.value.body()
-        page.wait_for_load_state('networkidle',timeout=45000)
-        if not statuses or any(code>=400 for code in statuses):
-            raise ValueError('Resposta do Hands nao confirmada')
-        start_br=datetime.strptime(start,'%Y-%m-%d').strftime('%d/%m/%Y')
-        end_br=datetime.strptime(end,'%Y-%m-%d').strftime('%d/%m/%Y')
-        if not any((start in body or start_br in body) and (end in body or end_br in body)
-                   for body in requests_seen):
-            raise ValueError('Datas inicial e final nao confirmadas nas consultas; nada importado')
-        previous=None
-        last_error='DRE historica nao estabilizou'
-        for _ in range(20):
-            try:
-                current=snapshot_month(page,competence)
-            except (ValueError,BrowserTimeout) as erro:
-                current=None
-                last_error=str(erro) if isinstance(erro,ValueError) else 'Tempo excedido'
-            if current is not None and current==previous:
-                current['captured_at']=datetime.now(timezone.utc).isoformat()
-                return current
-            previous=current
-            page.wait_for_timeout(1000)
-        raise ValueError(last_error)
-    finally:
-        page.remove_listener('request',record_request)
-        page.remove_listener('response',record_response)
-
-def main():
-    with sync_playwright() as pw:
-        browser=pw.chromium.launch(headless=True)
-        try:
-            context=browser.new_context(storage_state=vault.read(ROOT/'hands-session.dpapi'),
-                viewport={'width':1440,'height':1000},locale='pt-BR',timezone_id='America/Sao_Paulo')
-            results=[]
-            for competence in ('2026-08-01','2026-09-01'):
-                print('CONSULTANDO PERIODO COMPLETO: '+competence[:7],flush=True)
-                page=context.new_page()
-                page.set_default_timeout(20000)
-                try:
-                    step('abrir pagina DRE')
-                    page.goto('https://www.clientes.hands-ai.com.br/dre',
-                              wait_until='domcontentloaded',timeout=60000)
-                    step('aguardar titulo DRE')
-                    page.get_by_role('heading',name='Demonstrativo de Resultados do Exerc\u00edcio',
-                                     exact=True).wait_for(timeout=60000)
-                    step('aguardar carregamento inicial')
-                    page.wait_for_load_state('networkidle',timeout=45000)
-                    result=read_month(page,competence)
-                    results.append(result)
-                    print('LEITURA VALIDADA: '+competence[:7]+' | CMV '+str(result['cmv_percent'])+'%',flush=True)
-                finally:
-                    page.close()
-            output=ROOT/'cmv_agosto_setembro_leitura.json'
-            output.write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
-            print('RESULTADO PARA CONFERENCIA:')
-            print(json.dumps(results,ensure_ascii=False,indent=2))
-            print('LEITURA CONCLUIDA. Nenhum dado gravado no banco; robos e sessoes preservados.')
-        finally:
-            browser.close()
-
-if __name__=='__main__':
-    try:
-        main()
-    except Exception as erro:
-        safe=str(erro) if isinstance(erro,ValueError) else type(erro).__name__
-        if isinstance(erro,BrowserTimeout):
-            safe += ' | '+str(erro).splitlines()[0][:180]
-        safe += ' | ETAPA: '+STEP
-        print('LEITURA NAO CONCLUIDA: '+safe,file=sys.stderr)
-        raise SystemExit(1)
