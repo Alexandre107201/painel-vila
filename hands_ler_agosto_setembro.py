@@ -1,16 +1,18 @@
 """Captura somente leitura dos fechamentos de agosto e setembro de 2026."""
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date, timedelta
+from urllib.parse import urlsplit
 import calendar
 import json
 import re
 import sys
 from playwright.sync_api import sync_playwright, TimeoutError as BrowserTimeout
-from core import OPERATION, validate, number_br
-from hands_publish import MONTHS, validated_percent, empty_report_confirmed
+from core import OPERATION, validate, number_br, month_now
+from hands_publish import MONTHS, validated_percent, empty_report_confirmed, refresh_and_capture
 import vault
 
 ROOT = Path(__file__).resolve().parent
+MONTHLY_ROUTES = set()
 MONTH_NAMES = ['Janeiro','Fevereiro','Mar\u00e7o','Abril','Maio','Junho',
                'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
@@ -155,8 +157,52 @@ def safe_date_evidence(bodies):
     unique = {json.dumps(item,sort_keys=True):item for item in evidence}
     return list(unique.values())
 
+
+def request_info(request):
+    if request.resource_type not in ('xhr','fetch'):
+        return None
+    try:
+        payload=json.loads(request.post_data or '')
+    except (ValueError,TypeError):
+        return None
+    parts=urlsplit(request.url)
+    return (parts.scheme+'://'+parts.netloc+parts.path,payload)
+
+def monthly_request(info, competence):
+    if not info:
+        return False
+    route,payload=info
+    return isinstance(payload,dict) and payload.get('p_inicio')==competence and payload.get('p_fim')==competence
+
+def calibrate_monthly_api(context):
+    expected=(date.fromisoformat(month_now())-timedelta(days=1)).replace(day=1).isoformat()
+    step('confirmar formato mensal na aba Mes Anterior')
+    page=context.new_page()
+    page.set_default_timeout(20000)
+    seen=[]
+    def collect(request):
+        info=request_info(request)
+        if info:
+            seen.append(info)
+    page.on('request',collect)
+    try:
+        page.goto('https://www.clientes.hands-ai.com.br/dre',wait_until='domcontentloaded',timeout=60000)
+        page.get_by_role('heading',name='Demonstrativo de Resultados do Exerc\u00edcio',exact=True).wait_for(timeout=60000)
+        baseline=refresh_and_capture(page,expected,'M\u00eas Anterior')
+        for info in seen:
+            if monthly_request(info,expected):
+                MONTHLY_ROUTES.add(info[0])
+        if not MONTHLY_ROUTES:
+            raise ValueError('Formato por competencia nao confirmado na aba mensal; nada importado')
+        print('FORMATO MENSAL CONFIRMADO: Mes Anterior '+expected[:7]+
+              ' envia p_inicio e p_fim iguais ao primeiro dia da competencia; CMV '+
+              str(baseline['cmv_percent'])+'%.',flush=True)
+    finally:
+        page.close()
+
 def read_month(page, competence):
     requests_seen = []
+    request_details = []
     statuses = []
     def record_request(request):
         if request.resource_type not in ('xhr','fetch'):
@@ -164,6 +210,9 @@ def read_month(page, competence):
         # Datas sao conferidas em memoria; nao imprime corpo, cabecalhos ou tokens.
         body = request.post_data or ''
         requests_seen.append(body)
+        info=request_info(request)
+        if info:
+            request_details.append(info)
     def record_response(response):
         if response.request.resource_type in ('xhr','fetch'):
             statuses.append(response.status)
@@ -181,8 +230,11 @@ def read_month(page, competence):
             raise ValueError('Resposta do Hands nao confirmada')
         start_br=datetime.strptime(start,'%Y-%m-%d').strftime('%d/%m/%Y')
         end_br=datetime.strptime(end,'%Y-%m-%d').strftime('%d/%m/%Y')
-        if not any((start in body or start_br in body) and (end in body or end_br in body)
-                   for body in requests_seen):
+        interval_confirmed=any((start in body or start_br in body) and (end in body or end_br in body)
+                               for body in requests_seen)
+        month_confirmed=any(monthly_request(info,competence) and info[0] in MONTHLY_ROUTES
+                            for info in request_details)
+        if not (interval_confirmed or month_confirmed):
             print('DATAS DETECTADAS NAS CONSULTAS:',json.dumps(safe_date_evidence(requests_seen),ensure_ascii=False),flush=True)
             try:
                 observed=snapshot_month(page,competence)
@@ -214,6 +266,7 @@ def main():
         try:
             context=browser.new_context(storage_state=vault.read(ROOT/'hands-session.dpapi'),
                 viewport={'width':1440,'height':1000},locale='pt-BR',timezone_id='America/Sao_Paulo')
+            calibrate_monthly_api(context)
             results=[]
             for competence in ('2026-08-01','2026-09-01'):
                 print('CONSULTANDO PERIODO COMPLETO: '+competence[:7],flush=True)
@@ -251,5 +304,6 @@ if __name__=='__main__':
         safe += ' | ETAPA: '+STEP
         print('LEITURA NAO CONCLUIDA: '+safe,file=sys.stderr)
         raise SystemExit(1)
+
 
 
