@@ -21,8 +21,8 @@ Get-ChildItem $rootHands -File | ForEach-Object {
 Write-Host "BACKUP CONCLUIDO: $backupHands"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $candidato = Join-Path $rootHands 'hands_publish_candidate.py'
-Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/Alexandre107201/painel-vila/79f41d6d99de2a52aa706459fae14695df2438ea/hands_publish_revisao_15dias.py' -OutFile $candidato
-if ((Get-FileHash $candidato -Algorithm SHA256).Hash -ne 'c3f4f7f44f44bbdc8b37463408c4ad43d6ed404691cecd0136a3343432a62bd2') {
+Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/Alexandre107201/painel-vila/74c8aff5b6b1beae8bc7b6bfd2ea396aa939a7aa/hands_publish_revisao_15dias.py' -OutFile $candidato
+if ((Get-FileHash $candidato -Algorithm SHA256).Hash -ne 'ba594946a2e9dffe9b8aa4f6154ab14a6acb44ec73d8dc72bd1ba51072e9e8ba') {
     throw 'Verificacao do arquivo falhou; arquivos ativos nao foram alterados.'
 }
 try {
