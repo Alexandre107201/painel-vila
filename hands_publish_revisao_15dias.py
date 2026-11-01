@@ -23,9 +23,13 @@ class CMVUnavailable(ValueError):
 def validated_percent(percent, costs_text, revenue_text):
     costs = number_br(costs_text)
     revenue = number_br(revenue_text)
-    if revenue == 0 and costs >= 0:
-        raise CMVUnavailable('Receitas zeradas; CMV ainda sem base de calculo')
     text = str(percent).replace('\u00a0', ' ').strip()
+    if revenue == 0 and costs >= 0:
+        placeholder = text.lower() in ('', '-', '\u2014', '\u2013', 'n/a', 'nan%', 'nan %')
+        literal_zero = re.fullmatch(r'0+(?:[.,]0+)?\s*%', text) is not None
+        if costs == 0 and (placeholder or literal_zero):
+            return '0,00%'
+        raise CMVUnavailable('Receita zerada sem conjunto de valores zero confirmado')
     if not re.fullmatch(r'\d{1,3}(?:[.,]\d{1,6})?\s*%', text):
         raise ValueError('Percentual Hands nao reconhecido: ' + repr(text[:40]))
     value = Decimal(text.removesuffix('%').strip().replace(',', '.'))
@@ -77,6 +81,10 @@ def snapshot(page, expected, tab_name):
         return matches[0]
     costs, revenue = row('CUSTOS COM MERCADORIAS'), row('RECEITAS SOBRE VENDAS')
     pct = validated_percent(costs[indexes[2]], costs[indexes[1]], revenue[indexes[1]])
+    if number_br(costs[indexes[1]]) == 0 and number_br(revenue[indexes[1]]) == 0 and pct == '0,00%':
+        # Competencia, operacao, linhas e cabecalhos ja foram conferidos.
+        return dict(operation=OPERATION, competence=expected, cmv_percent=0.0,
+                    merchandise_cost=0.0, sales_revenue=0.0)
     return validate(dict(operation=OPERATION, month=expected, percent=pct,
                          costs=costs[indexes[1]], revenue=revenue[indexes[1]]), expected)
 
@@ -185,5 +193,6 @@ if __name__ == '__main__':
             isinstance(e, RuntimeError) and str(e).startswith('Supabase HTTP ')) else type(e).__name__
         print('CAPTURA NAO CONCLUIDA: ' + safe, file=sys.stderr)
         sys.exit(1)
+
 
 
