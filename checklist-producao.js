@@ -1,0 +1,38 @@
+/* Checklist operacional de produção: registro local por data, operação e produto.
+   Quantidades sugeridas por horário exigem análise histórica horária validada. */
+(function(){
+'use strict';
+const screen=document.getElementById('productionScreen');
+if(!screen)return;
+const controls=screen.querySelector('.production-controls');
+const btn=document.createElement('button');
+btn.className='import-secondary';btn.type='button';btn.textContent='Checklist de produção';
+controls.appendChild(btn);
+const wrap=document.createElement('section');
+wrap.id='productionChecklist';
+wrap.hidden=true;
+wrap.style.cssText='margin:18px 0;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px';
+wrap.innerHTML='<h3 style="margin:0 0 8px">Checklist de produção · abertura às 6h e reposições</h3><p class="production-note">Preencha o estoque e confira a previsão na tabela acima. Registre cada lote efetivamente produzido. Os horários e volumes não são calculados automaticamente até a validação da distribuição horária por produto. Os registros desta versão ficam somente neste navegador.</p><div id="pcList"></div><button type="button" class="import-secondary" id="pcExport">Exportar registros (CSV)</button>';
+controls.after(wrap);
+const date=document.getElementById('productionDate'),unit=document.getElementById('productionUnit'),body=document.getElementById('productionBody');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;'}[c]));
+const key=()=>['vila-checklist-producao-v1',date.value,unit.value].join(':');
+function get(){try{return JSON.parse(localStorage.getItem(key())||'{}')}catch(e){return {}}}
+function save(v){try{localStorage.setItem(key(),JSON.stringify(v));return true}catch(e){alert('Não foi possível salvar neste aparelho.');return false}}
+function products(){return [...body.querySelectorAll('tr')].map(tr=>tr.querySelector('.focus-name')?.firstChild?.textContent?.trim()).filter(Boolean)}
+function draw(){
+const saved=get(),items=products();
+document.getElementById('pcList').innerHTML=items.length?items.map((name,i)=>{
+const rec=saved[name]||{},opening=rec.abertura||{},repl=rec.reposicao||{};
+return '<div style="padding:12px 0;border-bottom:1px solid var(--border-soft)" data-name="'+esc(name)+'"><strong>'+esc(name)+'</strong><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"><label>6h · quantidade feita<input style="display:block;max-width:115px" type="number" min="0" step="0.01" data-slot="abertura" data-field="quantidade" value="'+esc(opening.quantidade??'')+'"></label><label>6h · responsável<input style="display:block;max-width:160px" data-slot="abertura" data-field="responsavel" value="'+esc(opening.responsavel??'')+'"></label><label>Reposição · horário<input style="display:block" type="time" data-slot="reposicao" data-field="horario" value="'+esc(repl.horario??'')+'"></label><label>Reposição · quantidade<input style="display:block;max-width:115px" type="number" min="0" step="0.01" data-slot="reposicao" data-field="quantidade" value="'+esc(repl.quantidade??'')+'"></label><label>Reposição · responsável<input style="display:block;max-width:160px" data-slot="reposicao" data-field="responsavel" value="'+esc(repl.responsavel??'')+'"></label><label>Sobra / desperdício<input style="display:block;max-width:115px" type="number" min="0" step="0.01" data-field="perda" value="'+esc(rec.perda??'')+'"></label><label>Observação<input style="display:block" data-field="observacao" value="'+esc(rec.observacao??'')+'"></label></div></div>';
+}).join(''):'<p>Calcule a produção para carregar os produtos.</p>';
+}
+btn.onclick=()=>{wrap.hidden=!wrap.hidden;if(!wrap.hidden)draw()};
+wrap.addEventListener('change',e=>{const t=e.target,div=t.closest('[data-name]');if(!div||!t.dataset.field)return;const saved=get(),name=div.dataset.name,rec=saved[name]||{},slot=t.dataset.slot,field=t.dataset.field;if(slot){rec[slot]=rec[slot]||{};rec[slot][field]=t.value}else rec[field]=t.value;saved[name]=rec;save(saved)});
+document.getElementById('pcExport').onclick=()=>{
+const records=get(),lines=[['data','operacao','produto','etapa','horario','quantidade','responsavel','desperdicio','observacao']];
+Object.entries(records).forEach(([name,r])=>['abertura','reposicao'].forEach(slot=>{const x=r[slot]||{};lines.push([date.value,unit.value,name,slot,slot==='abertura'?'06:00':x.horario||'',x.quantidade||'',x.responsavel||'',r.perda||'',r.observacao||''])}));
+const csv=lines.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n'),url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='checklist-producao-'+date.value+'-'+unit.value+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+const observer=new MutationObserver(()=>{if(!wrap.hidden)draw()});observer.observe(body,{childList:true});
+date.addEventListener('change',()=>{if(!wrap.hidden)draw()});unit.addEventListener('change',()=>{if(!wrap.hidden)draw()});
+})();
