@@ -343,7 +343,7 @@
         <button class="period-btn" data-period="setembro">Setembro/2026</button>
         <button class="period-btn" data-period="agosto">Agosto/2026</button>
       </div>
-      <button class="import-btn" id="openProduction" type="button">Produção diária</button>
+      <a href="checklist-operacional-teste.html" target="_blank" rel="noopener" class="import-btn" style="display:inline-flex;align-items:center;text-decoration:none">☑ Checklist</a><a href="dashboard-checklists.html" target="_blank" rel="noopener" class="import-btn" style="display:inline-flex;align-items:center;text-decoration:none">▤ Gestão dos checklists</a><button class="import-btn" id="openProduction" type="button">Produção diária</button>
       <button class="import-btn" id="openImport" type="button">Importar relatório</button>
       <button class="theme-toggle" id="themeToggle" title="Alternar fundo claro/escuro" aria-label="Alternar fundo claro/escuro">☀</button>
     </div>
@@ -2102,7 +2102,7 @@ renderAll();
 <label>Dia da produção<input type="date" id="productionDate"></label>
 <label>Operação<select id="productionUnit"><option value="fit">Vila Fit</option><option value="gourmet">Vila Gourmet</option><option value="ambas">Ambas</option></select></label>
 <label>Ajuste de demanda (%)<input id="productionAdjustment" type="number" value="0" min="-100" max="200" step="1"></label>
-<button id="loadProduction" class="import-primary">Calcular produção</button><button id="printProduction" class="import-secondary">Imprimir lista</button><a href="checklist-operacional-teste.html" target="_blank" rel="noopener" class="import-secondary" style="display:inline-flex;align-items:center;text-decoration:none;padding:10px 15px;border-radius:8px">☑ Checklist operacional</a><a href="dashboard-checklists.html" target="_blank" rel="noopener" class="import-secondary" style="display:inline-flex;align-items:center;text-decoration:none;padding:10px 15px;border-radius:8px">▤ Avaliação dos checklists</a>
+<button id="loadProduction" class="import-primary">Calcular produção</button><button id="printProduction" class="import-secondary">Imprimir lista</button>
 </div>
 <p class="production-note">Regra inicial: 70% do mesmo dia da semana passada + 30% do dia anterior. Sem margem extra automática. Quantidade a produzir = previsão ajustada − estoque pronto aproveitável, arredondada para cima. Os pesos são uma hipótese inicial, ainda não calibrada. Vendas não revelam perdas ou falta de produto; revise eventos, feriados e rupturas. Informe somente estoque dentro da validade. Bolo vendido por fatia gera sugestão em fatias, não em bolos inteiros.</p>
 <p class="production-note">O estoque informado fica neste aparelho e nesta data. O ajuste percentual vale para toda a lista. A referência sem registros aparece como indisponível, nunca como zero confirmado. Dias com registros podem ainda estar incompletos: confira a importação diária.</p>
