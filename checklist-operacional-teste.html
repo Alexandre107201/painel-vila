@@ -8,9 +8,9 @@ const groups=[
 ['Reposição e operação','Conferir durante o dia conforme demanda.',[
 ['Vitrine e exposição','Produtos organizados e identificados'],['Reposição conforme vendas','Reposição necessária realizada sem excesso'],['Controle de temperatura','Temperaturas e conservação conferidas'],['Segurança alimentar','Separação e prevenção de contaminação cruzada'],['Ocorrências','Faltas, atrasos ou problemas registrados']]],
 ['Fechamento','Conferências e registros ao encerrar.',[
-['Sobras e desperdícios','Perdas registradas para análise'],['Produtos armazenados','Identificação, validade e conservação'],['Limpeza final','Utensílios, equipamentos e bancadas'],['Pendências comunicadas','Problemas repassados à liderança']]]];
+['Sobras e desperdícios','Perdas registradas para análise'],['Produtos armazenados','Identificação, validade e conservação'],['Limpeza final','Utensílios, equipamentos e bancadas'],['Pendências comunicadas','Problemas repassados à liderança'],['Geladeiras e refrigeradores ligados','Conferir alimentação elétrica, funcionamento e temperatura adequada'],['Fornos desligados','Confirmar desligamento seguro dos fornos após o uso'],['Fritadeiras desligadas','Confirmar desligamento seguro das fritadeiras após o uso'],['Luzes da operação desligadas','Conferir iluminação das áreas operacionais ao encerrar'],['Luzes do escritório desligadas','Conferir iluminação do escritório ao encerrar']]],['Manutenção preventiva · semanal','Uma vez por semana, com equipamento desligado e conforme orientação do fabricante.',[['Limpeza dos condensadores dos equipamentos','Verificar e executar limpeza dos condensadores acessíveis, por colaborador treinado, com equipamento desenergizado; quando necessário, acionar manutenção técnica']]]];
 const $=id=>document.getElementById(id);$('day').value=new Date().toLocaleDateString('en-CA');
-const key=()=>['checklist-vila-mobile-v2',$('day').value,$('unit').value,$('shift').value].join(':');
+const key=()=>['checklist-vila-mobile-v3',$('day').value,$('unit').value,$('shift').value].join(':');
 function load(){try{return JSON.parse(localStorage.getItem(key())||'{}')}catch(e){return {}}}
 function save(){localStorage.setItem(key(),JSON.stringify(data));progress()}
 let data=load();
