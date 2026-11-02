@@ -38,4 +38,57 @@ Object.entries(records).forEach(([name,r])=>['abertura','reposicao'].forEach(slo
 const csv=lines.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n'),url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='checklist-producao-'+date.value+'-'+unit.value+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 const observer=new MutationObserver(()=>{if(!wrap.hidden)draw()});observer.observe(body,{childList:true});
 date.addEventListener('change',()=>{if(!wrap.hidden)draw()});unit.addEventListener('change',()=>{if(!wrap.hidden)draw()});
+const split=document.createElement('section');
+split.id='pcSplit';
+split.style.cssText='margin:12px 0;padding:12px;border:1px solid #b5c4d0;border-radius:8px';
+wrap.insertBefore(split,document.getElementById('pcList'));
+const endpoint='https://bbhtrxuaumhpqtbcgewc.supabase.co/rest/v1/vendas_teknisa';
+const anon='sb_publishable_VO0CBuxqDHhk3n5IwcFjBA_cDwfq0JK';
+let splitRequest=0;
+function dayMinus(day,n){const d=new Date(day+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-n);return d.toISOString().slice(0,10)}
+function numeric(t){const n=Number(String(t).replace(/\\./g,'').replace(',','.'));return Number.isFinite(n)?n:null}
+async function hourlySplit(){
+ const request=++splitRequest,day=date.value,op=unit.value;
+ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(day)){split.textContent='Escolha a data.';return}
+ split.textContent='Consultando vendas horárias de referência…';
+ try{
+  const totals=new Map(),dates=[dayMinus(day,1),dayMinus(day,7)];
+  for(const refDay of dates){
+   const operations=op==='ambas'?['vila_fit','vila_gourmet']:[op==='fit'?'vila_fit':'vila_gourmet'];
+   let offset=0;
+   while(offset<20000){
+    const url=endpoint+'?select=produto,hora,quantidade&data=eq.'+refDay+'&operacao=in.('+operations.join(',')+')&order=id.asc&limit=1000&offset='+offset;
+    const response=await fetch(url,{headers:{apikey:anon,Authorization:'Bearer '+anon}});
+    if(!response.ok)throw Error('Consulta indisponível ('+response.status+')');
+    const page=await response.json();
+    for(const item of page){
+     const h=parseInt(item.hora,10),q=Number(item.quantidade);
+     if(!item.produto||!Number.isFinite(h)||!Number.isFinite(q)||q<=0)continue;
+     const x=totals.get(item.produto)||{all:0,morning:0};
+     x.all+=q;if(h<11)x.morning+=q;totals.set(item.produto,x);
+    }
+    offset+=page.length;
+    if(page.length<1000)break;
+   }
+   if(offset>=20000)throw Error('Volume acima do limite de consulta');
+  }
+  if(request!==splitRequest)return;
+  const trs=[...body.querySelectorAll('tr')],lines=[];
+  for(const tr of trs){
+   const name=tr.querySelector('.focus-name')?.firstChild?.textContent?.trim();
+   const cells=tr.querySelectorAll('td');
+   if(!name||cells.length<6)continue;
+   const ref=totals.get(name),qty=numeric(cells[5].textContent.trim());
+   if(!ref||!ref.all||qty===null)continue;
+   const pct=ref.morning/ref.all;
+   const opening=Math.ceil(qty*pct),later=Math.max(0,qty-opening);
+   lines.push('<tr><td>'+esc(name)+'</td><td>'+Math.round(pct*100)+'%</td><td>'+opening+'</td><td>'+later+'</td></tr>');
+  }
+  split.innerHTML='<strong>Divisão indicativa da previsão do dashboard</strong><p class="production-note">Abertura às 6h = parcela de vendas antes das 11h observada no dia anterior e no mesmo dia da semana anterior. Restante = reposição ao longo do dia. Quantidades são estimativas, não ordens. Conferir estoque, validade, tempo de preparo e sazonalidade antes de produzir.</p>'+(lines.length?'<div style="max-height:320px;overflow:auto"><table class="focus-table"><thead><tr><th>Produto</th><th>Vendas manhã</th><th>Sugestão 6h</th><th>Restante do dia</th></tr></thead><tbody>'+lines.join('')+'</tbody></table></div>':'<p>Sem dados suficientes para dividir a previsão por horário.</p>');
+ }catch(e){if(request===splitRequest)split.textContent='Não foi possível estimar a divisão por horário: '+e.message}
+}
+btn.addEventListener('click',()=>{if(!wrap.hidden)hourlySplit()});
+date.addEventListener('change',()=>{if(!wrap.hidden)hourlySplit()});
+unit.addEventListener('change',()=>{if(!wrap.hidden)hourlySplit()});
+
 })();
