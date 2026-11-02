@@ -2102,7 +2102,7 @@ renderAll();
 <label>Dia da produção<input type="date" id="productionDate"></label>
 <label>Operação<select id="productionUnit"><option value="fit">Vila Fit</option><option value="gourmet">Vila Gourmet</option><option value="ambas">Ambas</option></select></label>
 <label>Ajuste de demanda (%)<input id="productionAdjustment" type="number" value="0" min="-100" max="200" step="1"></label>
-<button id="loadProduction" class="import-primary">Calcular produção</button><button id="printProduction" class="import-secondary">Imprimir lista</button>
+<button id="loadProduction" class="import-primary">Calcular produção</button><button id="printProduction" class="import-secondary">Imprimir lista</button><a href="checklist-operacional-teste.html" target="_blank" rel="noopener" class="import-secondary" style="display:inline-flex;align-items:center;text-decoration:none;padding:10px 15px;border-radius:8px">☑ Checklist operacional</a><a href="dashboard-checklists.html" target="_blank" rel="noopener" class="import-secondary" style="display:inline-flex;align-items:center;text-decoration:none;padding:10px 15px;border-radius:8px">▤ Avaliação dos checklists</a>
 </div>
 <p class="production-note">Regra inicial: 70% do mesmo dia da semana passada + 30% do dia anterior. Sem margem extra automática. Quantidade a produzir = previsão ajustada − estoque pronto aproveitável, arredondada para cima. Os pesos são uma hipótese inicial, ainda não calibrada. Vendas não revelam perdas ou falta de produto; revise eventos, feriados e rupturas. Informe somente estoque dentro da validade. Bolo vendido por fatia gera sugestão em fatias, não em bolos inteiros.</p>
 <p class="production-note">O estoque informado fica neste aparelho e nesta data. O ajuste percentual vale para toda a lista. A referência sem registros aparece como indisponível, nunca como zero confirmado. Dias com registros podem ainda estar incompletos: confira a importação diária.</p>
@@ -2212,7 +2212,6 @@ load(true);
 </script>
 
 
-<style>#vilaChecklistLinks{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;gap:8px;flex-wrap:wrap}#vilaChecklistLinks a{background:#17324d;color:#fff;border:1px solid #8da8b9;padding:12px 15px;border-radius:10px;text-decoration:none;font:600 13px system-ui,Arial;box-shadow:0 3px 12px #0005}#vilaChecklistLinks a:last-child{background:#27634a}@media(max-width:500px){#vilaChecklistLinks{left:12px;right:12px}#vilaChecklistLinks a{flex:1;text-align:center;padding:12px 6px;font-size:12px}}</style><div id="vilaChecklistLinks"><a href="checklist-operacional-teste.html" target="_blank" rel="noopener">☑ Checklist operacional</a><a href="dashboard-checklists.html" target="_blank" rel="noopener">▤ Avaliação dos checklists</a></div>
 </body>
 </html>
 
