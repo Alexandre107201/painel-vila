@@ -713,6 +713,7 @@
          { nome: "Pastel · Vila Fit", unidade: "un", casa: 0, operacao: "vila_fit", teste: function (n) { return n.indexOf("PASTEL") === 0 && n.indexOf("KG") < 0; } },
          { nome: "Pastel unidade · Vila Gourmet", unidade: "un", casa: 0, operacao: "vila_gourmet", teste: function (n) { return /VENDA\s+PASTEL\s+UNIDADE/.test(n) || /^PASTEL.*\b(UND|UNIDADE)\b/.test(n); } },
          { nome: "Picolé", unidade: "un", casa: 0, teste: function (n) { return n.indexOf("PICOLE") === 0; } },
+         { nome: "Sucos naturais", unidade: "R$", casa: 2, medida: "valor", detalhar: true, teste: function (n) { return /\bSUCO\b|\bSUCOS\b/.test(n) && !/(GARRAFA|GARRAFINHA|GFA|GFR|\bGF\b|ENGARRAFADO|MAGUARY|DEL VALLE|KAPO|LATA|CAIXINHA)/.test(n); } },
          { nome: "Bebidas não alcoólicas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(AGUA|COCA|GUARANA|FANTA|SPRITE|SUCO|REFRI|H2O|H20H|ENERGET|RED ?BULL|MONSTER|GATORADE|POWERADE|DEL VALLE|KAPO|MINEIRINHO|COCO VERDE|ITALAC PRO)/.test(n) && n.indexOf("CAFE GELADO") < 0; } },
          { nome: "Cervejas", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(BRAHMA|CERVEJ|CORONA|HEINEKEN|SPATEN|AMSTEL|STELLA|SKOL|BUDWEISER|ANTARCTICA.*600|BECK|BOHEMIA|PETRA|ITAIPAVA)/.test(n) && !/(CHOP|CHOPP)/.test(n); } },
          { nome: "Chopes", unidade: "R$", casa: 2, medida: "valor", teste: function (n) { return /(CHOP|CHOPP)/.test(n); } },
